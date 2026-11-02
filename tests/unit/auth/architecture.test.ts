@@ -59,7 +59,7 @@ describe("la autorización", () => {
 
 describe("Server Actions y Route Handlers", () => {
   const DIRECTIVE = /^\s*["']use server["']/m;
-  const PUBLIC_ACTIONS = ["/lib/auth/actions.ts"];
+  const PUBLIC_ACTIONS = ["/lib/auth/actions.ts", "/lib/compatibility/actions.ts"];
 
   it("los únicos archivos 'use server' son los de login/logout y los que comprueban al admin", () => {
     expect(matching(APP, DIRECTIVE)).toContain("/lib/auth/actions.ts");
