@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/login", headers: privateHeaders },
       { source: "/admin/:path*", headers: privateHeaders },
+      // Pública e indexable, pero nunca en caché: las fechas viajan en la petición.
+      { source: "/compatibilidad", headers: [{ key: "Cache-Control", value: "no-store" }] },
     ];
   },
 };

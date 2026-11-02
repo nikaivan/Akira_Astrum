@@ -128,11 +128,15 @@ test.describe("calculadora de compatibilidad", () => {
       ["29 de febrero de un año no bisiesto", "2023-02-29"],
     ] as const) {
       test(`${name}: llega al servidor y se rechaza`, async ({ page }) => {
-        // El campo nativo no deja escribir estos valores: se cambia a texto para llegar a la validación del servidor.
-        await page.getByLabel(LABEL_A).evaluate((input: HTMLInputElement) => {
-          input.type = "text";
+        // El campo nativo no deja escribir estos valores (y React vuelve a fijar su tipo en cada evento):
+        // se rellena una fecha válida y se sustituye en la petición real, para llegar a la validación del servidor.
+        const placeholder = "2001-01-01";
+        await page.route("**/compatibilidad", async (route) => {
+          const request = route.request();
+          if (request.method() !== "POST") return route.continue();
+          await route.continue({ postData: (request.postData() ?? "").replace(placeholder, value) });
         });
-        await calculate(page, value, ARIES);
+        await calculate(page, placeholder, ARIES);
 
         const field = page.getByLabel(LABEL_A);
         await expect(field).toHaveAttribute("aria-invalid", "true");
@@ -174,15 +178,18 @@ test.describe("calculadora de compatibilidad", () => {
   });
 
   test("el teclado recorre los campos y el botón en orden, y Enter envía", async ({ page }) => {
+    // Escribir en un campo date depende del idioma del navegador: se rellena con fill y se prueba la navegación.
+    await page.getByLabel(LABEL_A).fill(ARIES);
+    await page.getByLabel(LABEL_B).fill(LEO);
     await page.getByLabel(LABEL_A).focus();
-    await page.keyboard.type("21032001");
+
     const order: string[] = [];
     for (let i = 0; i < 14 && !order.includes("calculate"); i++) {
       await page.keyboard.press("Tab");
       const id = await page.evaluate(() => document.activeElement?.id ?? "");
       if (id === "birth-b" || id === "calculate") order.push(id);
-      if (id === "birth-b" && order.filter((item) => item === "birth-b").length === 1) await page.keyboard.type("22072001");
     }
+    // En Chromium, Tab recorre los segmentos del campo date (día, mes y año): birth-b aparece varias veces.
     expect(order[0]).toBe("birth-b");
     expect(order.at(-1)).toBe("calculate");
     await page.keyboard.press("Enter");
