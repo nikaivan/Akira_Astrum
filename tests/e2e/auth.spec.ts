@@ -75,7 +75,7 @@ test.describe("sin sesión (sin Supabase)", () => {
   test("una entrada inválida muestra el mensaje genérico sin llegar a Supabase", async ({ page }) => {
     await page.goto("/login");
     await submitLogin(page, "no-es-un-correo", "x");
-    await expect(page.getByRole("alert")).toHaveText(GENERIC);
+    await expect(page.locator("form").getByRole("alert")).toHaveText(GENERIC);
     expect(new URL(page.url()).pathname).toBe("/login");
     expect(await sessionCookies(page)).toEqual([]);
   });
@@ -114,21 +114,21 @@ test.describe("con Supabase (proyecto de test)", () => {
 
   test("contraseña incorrecta y correo inexistente muestran el mismo mensaje", async ({ page, users }) => {
     await login(page, users.admin.email, WRONG_PASSWORD);
-    await expect(page.getByRole("alert")).toHaveText(GENERIC);
-    const wrongPassword = await page.getByRole("alert").innerText();
+    await expect(page.locator("form").getByRole("alert")).toHaveText(GENERIC);
+    const wrongPassword = await page.locator("form").getByRole("alert").innerText();
     expect(await sessionCookies(page)).toEqual([]);
 
     await page.goto("/login");
     await submitLogin(page, unknownEmail(), WRONG_PASSWORD);
-    await expect(page.getByRole("alert")).toHaveText(GENERIC);
-    expect(await page.getByRole("alert").innerText()).toBe(wrongPassword);
+    await expect(page.locator("form").getByRole("alert")).toHaveText(GENERIC);
+    expect(await page.locator("form").getByRole("alert").innerText()).toBe(wrongPassword);
     expect(new URL(page.url()).pathname).toBe("/login");
     expect(await sessionCookies(page)).toEqual([]);
   });
 
   test("un usuario sin rol admin con credenciales correctas recibe el mismo mensaje y no queda con sesión", async ({ page, users }) => {
     await login(page, users.user.email, users.user.password);
-    await expect(page.getByRole("alert")).toHaveText(GENERIC);
+    await expect(page.locator("form").getByRole("alert")).toHaveText(GENERIC);
     expect(new URL(page.url()).pathname).toBe("/login");
     expect(await sessionCookies(page)).toEqual([]);
   });
@@ -148,13 +148,13 @@ test.describe("con Supabase (proyecto de test)", () => {
     await page.goto("/login");
     for (let attempt = 1; attempt <= 5; attempt++) {
       await submitLogin(page, users.admin.email, WRONG_PASSWORD);
-      await expect(page.getByRole("alert")).toHaveText(GENERIC);
+      await expect(page.locator("form").getByRole("alert")).toHaveText(GENERIC);
     }
     await submitLogin(page, users.admin.email, WRONG_PASSWORD);
-    await expect(page.getByRole("alert")).toHaveText(RATE_LIMIT);
+    await expect(page.locator("form").getByRole("alert")).toHaveText(RATE_LIMIT);
 
     await submitLogin(page, users.admin.email, users.admin.password);
-    await expect(page.getByRole("alert")).toHaveText(RATE_LIMIT);
+    await expect(page.locator("form").getByRole("alert")).toHaveText(RATE_LIMIT);
     expect(new URL(page.url()).pathname).toBe("/login");
     await context.close();
 

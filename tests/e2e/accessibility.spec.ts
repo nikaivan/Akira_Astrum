@@ -14,7 +14,7 @@ test("/login con el mensaje de error visible no tiene violaciones de accesibilid
   await page.getByLabel("Correo electrónico").fill("no-es-un-correo");
   await page.getByLabel("Contraseña").fill("x");
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.locator("form").getByRole("alert")).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   expect(results.violations).toEqual([]);

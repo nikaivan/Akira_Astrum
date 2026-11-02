@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { authCookieOptions } from "./cookie-options";
 import { getSupabaseEnv } from "./env";
 
 export async function createClient() {
@@ -7,6 +8,7 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(url, anonKey, {
+    cookieOptions: authCookieOptions(process.env),
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {
@@ -15,8 +17,8 @@ export async function createClient() {
             cookieStore.set(name, value, options),
           );
         } catch {
-          // Server Components no pueden escribir cookies; la sesión se
-          // refrescará en el middleware (Fase 1).
+          // Los Server Components no pueden escribir cookies; el proxy
+          // refresca la sesión en las rutas de /admin.
         }
       },
     },
