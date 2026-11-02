@@ -75,6 +75,26 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Desviación respecto al plan (si la hay) y motivo:** ver la tabla "Desviaciones respecto al plan".
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-02 · Fase 1 · Bloque 1: slugs y estados de las entradas
+- **Objetivo de la sesión:** lógica pura de slugs y de estados `draft` y `published` en `lib/posts/`, con TDD estricto.
+- **Lo que pedí a la IA (resumen):** que propusiera primero la lista de tests con nombre, entrada y salida de cada caso (tildes, ñ, símbolos, título vacío o muy largo, slugs repetidos, entradas maliciosas), que esperase mi aprobación, y que siguiera rojo, verde y refactor sin tocar los tests después sin mi permiso.
+- **Lo que generó la IA (en una frase):** la lista de tests con seis decisiones abiertas (D1 a D6), 62 casos de test, `lib/posts/slug.ts` y `lib/posts/status.ts`, y el ADR 0006.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé la lista y después los tests escritos. Se vieron fallar en rojo porque los módulos no existían, y no se implementó nada hasta que los aprobé.
+- **Lo que corregí o rechacé, y por qué:**
+  - En D3 pedí que se pudiera usar un emoji en el título. Se mantuvo: el emoji vale junto a texto y el título guardado lo conserva; solo el slug lo descarta. Para un título que solo tiene emoji o símbolos elegí que dé error. Se añadieron dos casos (emoji al principio o al final, y símbolos del zodiaco junto a texto).
+  - Aprobé el resto de decisiones tal como se proponían: `published_at` ligado al estado con fecha nueva al republicar (D1), transiciones estrictas (D2), slug de 80 caracteres como máximo (D4), sin paquete `slugify` (D5) y sin transliterar alfabetos no latinos ni `ß`, `æ`, `ø` (D6).
+  - Para el aviso de lint de la regex de slug elegí la opción A: dejarla con un `eslint-disable` justificado. Autoricé así el único cambio en un test tras su escritura: ese comentario, que no altera ningún caso.
+  - Acepté el ADR 0006.
+- **Errores que detectaron los tests:** ninguno nuevo; la implementación pasó los 66 tests a la primera. Para comprobar que los tests discriminan, la IA rompió la implementación de cuatro formas y fallaron 5, 9, 3 y 4 tests; al restaurar volvieron los 66. Una de las roturas (no recortar el guion final tras cortar a 80) es justo un caso que la IA había previsto, de modo que `uniqueSlug` no produce `aaa--2`.
+- **Errores de la IA (no los detectó un test):**
+  - Escribió en un test el carácter invisible de inversión de texto (U+202E) de forma literal, no como secuencia de escape. Lo detectó el lint de seguridad (`detect-bidi-characters`) y se corrigió a `\u202E` antes de mi aprobación.
+  - Anunció 47 casos y eran 62: contó cada fila de `it.each` como uno solo. Lo corrigió al mostrar el rojo.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0006](adr/0006-publicacion-published-at-y-transiciones-estrictas.md), aceptado. D3 a D6 no tienen ADR propio: quedan recogidas en los tests y en esta entrada.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna. Las validaciones con Zod del título quedan para otro bloque (Zod no está instalado todavía).
+- **Resultado:** PR nº 6 fusionado en `main` con la CI en verde.
+- **Tiempo aproximado:** no medido.
+
 ---
 
 ## Dependencias añadidas (resumen)
@@ -125,6 +145,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Control de commits | "Un commit por paso, solo tras mi aprobación" | Funcionó, aunque el hook de Git pedía commitear sin parar | Una regla explícita del humano pesa más que el aviso del hook |
 | Estilo de código | "Lo más limpio posible, KISS, sin repetir código" | Funcionó: la validación de entorno vive en un solo sitio | Dar el criterio al empezar un paso |
 | Fallos en mi máquina | Pegar la salida real de la terminal y pedir el porqué | Funcionó: la IA reprodujo el fallo en un clon limpio de `main` y separó los problemas de código de los de entorno | Pegar siempre el error completo, no un resumen |
+| Tests antes que código | Pedir la lista de tests con entradas y salidas y las decisiones abiertas marcadas (D1 a D6), y aprobarla antes de escribir nada | Funcionó: surgió la corrección del emoji antes de implementar, no después | Mantenerlo en cada bloque |
+| Confianza en los tests | Romper la implementación a propósito y ver que los tests fallan | Funcionó: 4 roturas detectadas (5, 9, 3 y 4 tests) | Repetirlo en los bloques con lógica de seguridad |
 | Estado de Git | "Comprueba dónde estás subiendo" | Destapó el error de la rama ya fusionada | Comprobar PR y rama tras cada fusión, antes del siguiente commit |
 
 ## Resumen final para la memoria (se completa al terminar)
