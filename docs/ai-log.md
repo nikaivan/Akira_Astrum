@@ -110,7 +110,7 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
   - La primera lista de tests no cubría la zona horaria ni la comprobación de la matriz a ojo; los añadí yo al revisarla.
   - Dos avisos del lint de seguridad en los tests nuevos (una directiva `eslint-disable` que sobraba y un índice con variable) que la IA corrigió antes de enseñármelos.
   - Un recuento con el reporter JSON de Vitest creó por error un directorio `.vitest/` en el repositorio; se borró antes de cualquier commit y se comprobó que `npm test` no lo genera.
-- **Decisión de arquitectura tomada (enlace al ADR si existe):** sin ADR nuevo. Las decisiones D1 a D11 quedan en la lista de tests aprobada y en esta entrada. Las más arquitectónicas son D1 (simetría del nivel y del tipo de texto) y D10 (la fecha se trata como números, sin `Date` ni zona horaria); valorar registrarlas como ADR 0007.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0007](adr/0007-dominio-astrologico-fuente-de-verdad-simetria-y-fechas-sin-zona-horaria.md) (Aceptado), con la fuente de verdad única, la simetría del nivel y del tipo de texto (D1) y la fecha tratada como números, sin `Date` ni zona horaria (D10). El resto de decisiones, D2 a D9 y D11, quedan en la lista de tests aprobada y en esta entrada.
 - **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** `zod` 4.6.7, ver la tabla "Dependencias añadidas".
 - **Desviación respecto al plan (si la hay) y motivo:** ninguna.
 - **Resultado:** código y tests subidos en dos commits (`test:` y `feat:`); pendiente de fusionar en un PR.
