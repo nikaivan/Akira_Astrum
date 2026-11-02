@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { authCookieOptions } from "./cookie-options";
+import { authCookieOptions, enforceSessionCookieOptions } from "./cookie-options";
 import { getSupabaseEnv } from "./env";
 
 export async function createClient() {
@@ -14,7 +14,7 @@ export async function createClient() {
       setAll: (cookiesToSet) => {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
+            cookieStore.set(name, value, enforceSessionCookieOptions(options, process.env)),
           );
         } catch {
           // Los Server Components no pueden escribir cookies; el proxy

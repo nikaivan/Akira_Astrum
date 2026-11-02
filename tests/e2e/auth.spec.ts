@@ -141,8 +141,10 @@ test.describe("con Supabase (proyecto de test)", () => {
     await expect(page.getByText("Panel de administración")).toHaveCount(0);
   });
 
-  test("tras 5 fallos desde la misma IP se bloquea el sexto intento, incluso con la clave correcta", async ({ browser, users }) => {
-    const blockedIp = { "x-forwarded-for": "203.0.113.77" };
+  test("tras 5 fallos desde la misma IP se bloquea el sexto intento, incluso con la clave correcta", async ({ browser, users }, testInfo) => {
+    // Cada proyecto (escritorio/móvil) usa sus propias IPs: corren en paralelo contra el mismo servidor.
+    const octet = testInfo.project.name === "mobile" ? 87 : 77;
+    const blockedIp = { "x-forwarded-for": `203.0.113.${octet}` };
     const context = await browser.newContext({ extraHTTPHeaders: blockedIp });
     const page = await context.newPage();
     await page.goto("/login");
@@ -158,7 +160,7 @@ test.describe("con Supabase (proyecto de test)", () => {
     expect(new URL(page.url()).pathname).toBe("/login");
     await context.close();
 
-    const other = await browser.newContext({ extraHTTPHeaders: { "x-forwarded-for": "203.0.113.78" } });
+    const other = await browser.newContext({ extraHTTPHeaders: { "x-forwarded-for": `203.0.113.${octet + 1}` } });
     const otherPage = await other.newPage();
     await login(otherPage, users.admin.email, users.admin.password);
     await expect(otherPage).toHaveURL(/\/admin$/);

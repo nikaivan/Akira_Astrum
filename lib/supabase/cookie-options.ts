@@ -17,3 +17,19 @@ export function authCookieOptions(env: { NODE_ENV?: string }): CookieOptions {
     secure: env.NODE_ENV === "production",
   };
 }
+
+/**
+ * @supabase/ssr fuerza `maxAge` a 400 días al escribir la sesión e ignora
+ * `cookieOptions`, así que las opciones se reimponen justo antes de escribir la
+ * cookie. El borrado (`maxAge: 0`) se respeta; una caducidad menor, también.
+ */
+export function enforceSessionCookieOptions(
+  options: CookieOptions | undefined,
+  env: { NODE_ENV?: string },
+): CookieOptions {
+  const policy = authCookieOptions(env);
+  const requested = options?.maxAge;
+  const maxAge =
+    typeof requested === "number" && requested >= 0 ? Math.min(requested, SESSION_MAX_AGE_SECONDS) : SESSION_MAX_AGE_SECONDS;
+  return { ...options, ...policy, maxAge };
+}

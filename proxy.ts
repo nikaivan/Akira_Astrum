@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authorizeAdmin, type AdminDecision } from "@/lib/auth/authorize";
 import { adminResponse } from "@/lib/auth/proxy-response";
-import { authCookieOptions } from "@/lib/supabase/cookie-options";
+import { authCookieOptions, enforceSessionCookieOptions } from "@/lib/supabase/cookie-options";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 /**
@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
         setAll: (cookiesToSet, headers) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           passthrough = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => passthrough.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) => passthrough.cookies.set(name, value, enforceSessionCookieOptions(options, process.env)));
           Object.entries(headers).forEach(([name, value]) => passthrough.headers.set(name, value));
         },
       },
