@@ -60,7 +60,12 @@ describe("admin", () => {
     expect(visible.headers.get("content-type")).toBe("image/png");
 
     expect((await admin().remove([name])).error).toBeNull();
-    expect((await fetch(publicUrl(name))).status).toBe(404);
+
+    // Storage responde con HTTP 400 y un "404" en el cuerpo, no con un 404 HTTP.
+    const gone = await fetch(publicUrl(name));
+    expect(gone.ok).toBe(false);
+    expect(gone.headers.get("content-type")).not.toBe("image/png");
+    expect(await gone.text()).toMatch(/404|not.?found/i);
   });
 
   it.each([
