@@ -2,11 +2,9 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { compatibilityAction } from "@/lib/compatibility/actions";
 import { CompatibilityResult } from "./compatibility-result";
-
-const inputClass =
-  "h-11 w-full rounded-lg border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive";
 
 type FieldProps = {
   id: string;
@@ -24,7 +22,7 @@ function DateField({ id, name, label, defaultValue, error, inputRef }: FieldProp
       <label htmlFor={id} className="text-sm font-medium">
         {label}
       </label>
-      <input
+      <Input
         ref={inputRef}
         id={id}
         name={name}
@@ -33,7 +31,6 @@ function DateField({ id, name, label, defaultValue, error, inputRef }: FieldProp
         defaultValue={defaultValue}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={inputClass}
       />
       {error ? (
         <p id={errorId} className="text-sm font-medium text-destructive">
