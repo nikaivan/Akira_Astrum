@@ -1,6 +1,6 @@
 # ADR 0006: `published_at` ligado al estado y transiciones estrictas
 
-- **Estado:** Propuesto (borrador para revisión)
+- **Estado:** Aceptado (2026-11-02)
 - **Fecha:** 2026-11-02
 
 ## Contexto

@@ -10,4 +10,4 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0003](0003-seguridad-en-profundidad-rls-y-servidor.md) | Seguridad en profundidad: servidor y RLS | Aceptado |
 | [0004](0004-playwright-escritorio-y-movil.md) | Playwright con proyectos de escritorio y móvil | Aceptado |
 | [0005](0005-versiones-fijadas-y-verificacion-de-dependencias.md) | Versiones fijas y verificación de dependencias | Aceptado |
-| [0006](0006-publicacion-published-at-y-transiciones-estrictas.md) | `published_at` ligado al estado y transiciones estrictas | Propuesto |
+| [0006](0006-publicacion-published-at-y-transiciones-estrictas.md) | `published_at` ligado al estado y transiciones estrictas | Aceptado |
