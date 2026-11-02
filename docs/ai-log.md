@@ -144,6 +144,31 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-02 · Fase 1 · Bloque 4: login del admin y protección de la intranet
+- **Objetivo de la sesión:** login del admin con `@supabase/ssr`, `/login` y `/admin/*` protegidos (sin sesión → `/login`; no admin → 403), sin registro, con tests unitarios, de integración y e2e (escritorio y móvil) primero, y sin usar nunca producción.
+- **Lo que pedí a la IA (resumen):** proponer la arquitectura y la lista de tests por nivel antes de escribir nada; autorizar con `getUser()` (no `getSession()`) en cada Server Action y Route Handler, con el proxy solo como capa extra; mensaje de error idéntico para correo inexistente y contraseña errónea; limitación de intentos sin servicios de pago, explicando sus límites; cookies `httpOnly`/`secure`/`sameSite`; validación contra redirección abierta; `noindex` y fuera de la caché pública; fallar cerrado con un fallo simulado; axe-core en `/login`. Reglas: no leer `.env*`, e2e e integración solo contra el proyecto de test, usuarios temporales y nunca mis credenciales de admin.
+- **Lo que generó la IA (en una frase):** 9 archivos de tests unitarios nuevos (más uno de arquitectura sobre el código fuente), 2 de integración, 2 specs e2e con su infraestructura (servidor propio en el puerto 3100, usuarios temporales) y la implementación de `lib/auth/`, `proxy.ts`, `/login` y `/admin`.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé el plan, luego los tests. Rojo: en integración fallaron los 2 archivos nuevos por falta de módulos (128 existentes en verde) y el e2e no arrancaba (faltaba `@axe-core/playwright`). Verde final: 493 unitarios, 139 de integración y 44 e2e.
+- **Quién ejecutó qué:** la IA ejecutó los unitarios y los e2e que no necesitan Supabase (con variables de relleno); yo ejecuté la integración y los e2e con login contra el proyecto de test. La IA no llega a Supabase desde su entorno.
+- **Decisiones que tomé yo:** limitador en memoria por IP (L1); a un no admin con credenciales correctas se le cierra la sesión y se le muestra el mismo error genérico (L2); el 403 lo da el proxy (L3); sesión de 8 horas (L4). Además aprobé las propuestas P1 a P9 (cookie, 503 ante fallo de infraestructura, mensaje único, `next` solo dentro de `/admin`, `signOut` global, panel mínimo, IP de `x-forwarded-for`, servidor e2e propio en el puerto 3100 y `service_role` solo para usuarios temporales).
+- **Lo que corregí o rechacé, y por qué:** di permiso, tres veces, para cambiar tests ya aprobados, todos del mismo tipo (localizadores o datos de test mal planteados, no aserciones): acotar `getByRole("alert")` al formulario, porque Next incluye un `role="alert"` vacío y Playwright encontraba dos elementos, y usar IPs distintas por proyecto en el test del límite. Pospuse el test del service worker a la Fase 3 y la MFA como mejora.
+- **Errores que detectaron los tests:**
+  - El e2e destapó que `@supabase/ssr` fuerza la cookie a 400 días e ignora `cookieOptions`; la IA lo corrigió reimponiendo las opciones antes de escribir cada cookie, con un test unitario nuevo.
+  - El e2e del límite de intentos falló porque escritorio y móvil, en paralelo, compartían IP y contador.
+  - Los e2e sin Supabase destaparon `type="email"` bloqueando el envío (se añadió `noValidate`), el `role="alert"` duplicado y un falso fallo de contraste de axe por la transición del botón (`transition-none`).
+- **Errores de la IA (no los detectó un test, salvo donde se indica):**
+  - Escribió dos tests mal planteados (el `role="alert"` duplicado y las IPs compartidas); los destapó la ejecución real y el e2e sin Supabase.
+  - Tres tests e2e pasaban vacíos antes de existir `/login`; lo vio al leer el rojo y los endureció.
+  - Algunos errores de lint y de carga en sus propios tests (`use` como nombre de callback, opciones de `import.meta.glob`, lista de excepciones de `service_role`).
+  - Su suposición sobre las cookies de `@supabase/ssr` era incompleta: revisó los valores por defecto, pero no que se pisan al escribir.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0010](adr/0010-autorizacion-en-capas-proxy-requireadmin-y-rls.md) y [ADR 0011](adr/0011-login-y-sesion-mensaje-unico-limitador-en-memoria-y-cookies.md), ambos aceptados por mí el 2026-11-02.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** `@axe-core/playwright` 4.14.0 y `axe-core` 4.14.0 (ver la tabla de dependencias). `@supabase/ssr` ya estaba instalado.
+- **Desviación respecto al plan (si la hay) y motivo:** el `smoke` e2e pasa al puerto 3100 y `npm run test:e2e` exige `.env.test.local`, para que los e2e nunca hablen con producción. El 403 se da en el proxy porque `forbidden()` de Next es experimental.
+- **Resultado:** login y protección de `/admin` completos. Cobertura pendiente declarada: el test del service worker (Fase 3). Pendiente para la Fase 3: MFA (TOTP). Pendiente para la Fase 4: aplicar las migraciones a producción, sin la utilidad de test, con el registro desactivado y con el perfil admin creado por SQL.
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -164,6 +189,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | `@base-ui/react` 1.9.0 | Componentes sin estilos de `base-nova` (commit `b096433`) | `mui/base-ui`, MIT |
 | 2026-11-02 | `shadcn` 4.23.0 | CLI como dependencia de ejecución, porque `app/globals.css` importa `shadcn/tailwind.css` (commit `b096433`) | `shadcn-ui/ui`, MIT. Arrastra `@shadcn/registry` y `deepmerge`: 5 avisos nuevos en `npm audit` (2 bajos y 3 moderados) |
 | 2026-11-02 | `zod` 4.6.7 | Validación de la fecha de nacimiento en `lib/astrology/birth-date.ts` (Fase 1, bloque 2) | `colinhacks/zod`, MIT, sin dependencias propias. Versión exacta; `npm audit` sin cambios (0 altas) |
+| 2026-11-02 | `@axe-core/playwright` 4.14.0, `axe-core` 4.14.0 | Tests de accesibilidad en `/login` (Fase 1, bloque 4); solo de desarrollo | `dequelabs/axe-core-npm`, MPL-2.0 (ambas), versión exacta. `@axe-core/playwright` pide `playwright-core >= 1` y trae `axe-core ~4.14.0` |
 | 2026-11-02 | `actions/checkout@v4`, `actions/setup-node@v4` (GitHub Actions) | CI (paso 7) | Repositorios oficiales `actions/*`, MIT, no archivados. Fijadas a la versión mayor, no a un hash |
 
 ## Desviaciones respecto al plan (resumen)
@@ -184,6 +210,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | Scripts de instalación de `fsevents` (macOS) bloqueados por npm y sin autorizar | No son necesarios (A03: sin scripts de terceros innecesarios) | Ninguno |
 | 2026-11-02 | Aviso `EACCES` en `node_modules/.vitest-cache` en mi máquina | `node_modules` creado con permisos de `root` | Resuelto con `rm -rf node_modules && npm ci`; no era un problema del código |
 | 2026-11-02 | Los e2e fallaban en mi máquina | Causa de entorno, no de código (en un clon limpio de `main` pasan). Faltaba el navegador de Playwright en mi máquina | Resuelto instalando Chromium (`npx playwright install chromium`); no era un problema del código |
+| 2026-11-02 | El `smoke` e2e usa el puerto 3100 y `npm run test:e2e` exige `.env.test.local` | Para que los e2e no reutilicen un servidor levantado con `.env.local` (producción) | Hay que parar el `npm run dev` antes de ejecutar los e2e |
 
 ## Prompts que funcionaron y que no (opcional)
 
