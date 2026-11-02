@@ -116,6 +116,32 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** código y tests subidos en dos commits (`test:` y `feat:`); pendiente de fusionar en un PR.
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-02 · Fase 1 · Bloque 3: esquema, migraciones y políticas RLS
+- **Objetivo de la sesión:** tablas (`profiles`, `posts`, `categories`, `post_categories`), control de acceso con RLS y bucket de imágenes, con tests de integración primero y sin usar nunca producción.
+- **Lo que pedí a la IA (resumen):** proponer el esquema, las políticas por tabla y operación, y la lista de tests de integración por rol (anónimo, usuario no admin y admin); explicar cómo se determina el admin, cómo se evita la recursión y cómo se fijan `search_path` y permisos; y esperar mi aprobación. Después, tests, migraciones y refactor. Reglas: no leer ni imprimir `.env*`, no tocar producción, tests que aborten si la URL no coincide con `SUPABASE_TEST_PROJECT_REF`, y `service_role` solo para crear y borrar datos de prueba, documentado.
+- **Lo que generó la IA (en una frase):** una guarda del entorno con 34 tests unitarios, 7 archivos de integración (128 tests), una utilidad SQL de solo lectura para el proyecto de test, y tres migraciones (esquema, control de acceso y Storage).
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé el plan y luego el commit de los tests. Rojo real en mi proyecto de test: 21 fallos y 96 omitidos de 128, porque no existían tablas, políticas ni bucket. Verde final: 128 de 128.
+- **Quién ejecutó qué:** la IA no llega a Supabase desde su entorno, así que yo ejecuté toda la integración real. La IA ejecutó la guarda (unitarios) y comprobó el SQL con una emulación en un PostgreSQL desechable (108 casos por rol, y los tests de `structure` contra su informe).
+- **Lo que corregí o rechacé, y por qué:**
+  - Elegí un proyecto de Supabase de test aparte, con las claves en `.env.test.local`, y pegar las migraciones a mano en el editor SQL (sin la CLI, por el riesgo de apuntar a producción).
+  - Elegí una función de utilidad solo para el proyecto de test, con `service_role` para leer metadatos del catálogo, en lugar de una conexión directa a Postgres.
+  - Rechacé el primer plan (dos capas de tests y un adaptador de Postgres en el repositorio) y fijé yo el entorno: proyecto de Supabase aparte, claves en `.env.test.local` y abortar si la URL no coincide con `SUPABASE_TEST_PROJECT_REF`. La IA rehízo el plan con esas reglas, más simple y sin dependencias nuevas.
+  - Di permiso, tres veces, para modificar tests ya aprobados: las dos comprobaciones vacías de `structure`, el perfil admin que faltaba en `storage.test.ts` y la comprobación de la imagen borrada.
+  - Al principio no tenía `.env.test.local` bien creado y la guarda abortó, que es lo que debía hacer.
+- **Errores que detectaron los tests:** en el verde, los tests de integración reales destaparon dos suposiciones equivocadas de la IA sobre sus propios tests (ver abajo). Sobre las migraciones no hubo ningún fallo.
+- **Errores de la IA (no los detectó un test, salvo donde se indica):**
+  - Mi script de comprobación imprimió "sin errores" aunque PostgreSQL no había arrancado; lo rehízo con comprobaciones reales.
+  - Olvidó `revoke … from public` en `private.set_updated_at()` en el plan; lo corrigió al escribir la migración.
+  - Escribió dos tests de `structure` que pasaban sobre una lista vacía; lo vio al leer el rojo y pidió permiso para corregirlos.
+  - `storage.test.ts` no creaba el perfil admin y la subida se denegó (fallar cerrado aplicado a su propio test). Su emulación local no lo detectó porque allí sí había sembrado el perfil; lo destapó la ejecución real. Además, el resultado dependía del orden de los archivos.
+  - Supuso que Storage devuelve un 404 HTTP para una imagen borrada; devuelve 400 con un "404" en el cuerpo.
+  - Usó `/var/tmp` para el PostgreSQL desechable porque el directorio temporal de la sesión no es accesible para el usuario `postgres`; lo borró al terminar.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0008](adr/0008-control-de-acceso-rol-en-profiles-y-storage-no-listable.md) y [ADR 0009](adr/0009-pruebas-de-integracion-proyecto-de-test-y-service-role-acotado.md), ambos aceptados por mí el 2026-11-02. Los perfiles no se escriben por la API (ni el admin), el admin se determina solo por `profiles` y Storage no es listable.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna; se reutiliza `@supabase/supabase-js` 2.118.0.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna. `PLAN.md` §10 ya contemplaba un proyecto de Supabase en la nube solo para desarrollo.
+- **Resultado:** rama con 5 commits y 128 de 128 tests de integración en verde; pendiente de fusionar en un PR. Comprobé en el dashboard que tras la ejecución no quedan usuarios de prueba ni imágenes en `post-images`: la limpieza funciona. Pendiente para la Fase 4: aplicar las migraciones a producción, sin la utilidad de test y con el registro desactivado, y crear el perfil admin con SQL.
+- **Tiempo aproximado:** no medido.
+
 ---
 
 ## Dependencias añadidas (resumen)
@@ -171,6 +197,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Confianza en los tests | Romper la implementación a propósito y ver que los tests fallan | Funcionó: 4 roturas detectadas (5, 9, 3 y 4 tests) | Repetirlo en los bloques con lógica de seguridad |
 | Especificación como fuente de verdad | "No inventes ni cambies reglas; si algo es ambiguo o contradictorio, pregúntame" | Funcionó: la IA calculó las 66 parejas, vio que el texto no puede ser simétrico y me lo preguntó | Dar siempre esa instrucción cuando hay un documento de reglas |
 | Requisitos de casos reales | Pedir los fallos típicos con su ejemplo (el día anterior de `new Date("2000-03-21")` en otra zona horaria) | Funcionó: se reprodujo el fallo (en Los Ángeles da el día 20) y se probó en cuatro zonas | Pedir ejemplos concretos, no solo "ten en cuenta la zona horaria" |
+| Entorno de pruebas | Fijar por escrito el entorno (proyecto de test aparte), las reglas de secretos (no leer `.env*`) y una guarda que aborte si la URL no coincide con un ref | Funcionó: la guarda abortó cuando faltaban las variables y nunca se tocó producción | Definir el entorno y los secretos antes de pedir los tests |
+| Rojo y verde reales | Pegar la salida completa de la ejecución en tu proyecto | Funcionó: destapó dos errores de la IA en sus propios tests que su emulación local no vio | No sustituir la ejecución real por una emulación |
 | Estado de Git | "Comprueba dónde estás subiendo" | Destapó el error de la rama ya fusionada | Comprobar PR y rama tras cada fusión, antes del siguiente commit |
 
 ## Resumen final para la memoria (se completa al terminar)
