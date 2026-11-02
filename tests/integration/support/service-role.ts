@@ -56,10 +56,10 @@ async function run(query: PromiseLike<{ error: Failure }>, ignoreMissingTable = 
   }
 }
 
-export async function createTestUser(name: string): Promise<TempUser> {
+export async function createTestUser(name: string, confirmed = true): Promise<TempUser> {
   const email = `${name}@example.test`;
   const password = randomBytes(18).toString("base64url");
-  const { data, error } = await serviceClient().auth.admin.createUser({ email, password, email_confirm: true });
+  const { data, error } = await serviceClient().auth.admin.createUser({ email, password, email_confirm: confirmed });
   if (error || !data.user) throw new Error(`No se pudo crear el usuario de prueba: ${error?.message}`);
   return { id: data.user.id, email, password };
 }
@@ -79,6 +79,16 @@ export async function withTempUser<T>(
     if (profile) {
       await run(serviceClient().from("profiles").insert({ id: user.id, display_name: label, role: profile }));
     }
+    return await test(user);
+  } finally {
+    await deleteTestUser(user.id);
+  }
+}
+
+/** Crea un usuario cuyo correo NO está confirmado, ejecuta la prueba y lo borra siempre. */
+export async function withUnconfirmedUser<T>(label: string, test: (user: TempUser) => Promise<T>): Promise<T> {
+  const user = await createTestUser(`${inject("fixtures").runId}-${label}`, false);
+  try {
     return await test(user);
   } finally {
     await deleteTestUser(user.id);
