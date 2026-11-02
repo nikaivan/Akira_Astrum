@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { anonClient, clientFor, UNPRIVILEGED } from "./support/api";
-import { removeStorageObjects } from "./support/service-role";
+import { ensureProfiles, removeStorageObjects } from "./support/service-role";
 
 const BUCKET = "post-images";
 const MIB = 1024 * 1024;
@@ -24,6 +24,7 @@ const publicUrl = (name: string) => `${anonClient().storage.from(BUCKET).getPubl
 
 let shared: string;
 beforeAll(async () => {
+  await ensureProfiles(); // sin perfil de admin, is_admin() es false y la subida se deniega
   shared = newName();
   const { error } = await upload(clientFor("admin"), shared, PNG, "image/png");
   expect(error).toBeNull();

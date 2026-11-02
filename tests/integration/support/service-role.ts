@@ -140,18 +140,26 @@ export async function createSessions(): Promise<Fixtures> {
   return { runId, users: { admin, user, noProfile } };
 }
 
-/** Perfiles admin y user, dos categorías y una entrada publicada y otra borrador, todo con prefijo único. */
+/** Perfiles de los usuarios admin y user (el usuario noProfile no tiene perfil a propósito). */
+export async function ensureProfiles(): Promise<void> {
+  const { users } = inject("fixtures");
+  await run(
+    serviceClient()
+      .from("profiles")
+      .upsert([
+        { id: users.admin.id, display_name: "Admin de prueba", role: "admin" },
+        { id: users.user.id, display_name: "Usuario de prueba", role: "user" },
+      ]),
+  );
+}
+
+/** Dos categorías y una entrada publicada y otra borrador, todo con prefijo único. */
 export async function seedContent(tag: string): Promise<Seed> {
   const { runId, users } = inject("fixtures");
   const db = serviceClient();
   const prefix = `${runId}-${tag}`;
 
-  await run(
-    db.from("profiles").upsert([
-      { id: users.admin.id, display_name: "Admin de prueba", role: "admin" },
-      { id: users.user.id, display_name: "Usuario de prueba", role: "user" },
-    ]),
-  );
+  await ensureProfiles();
   const category = (slug: string) =>
     must<Row>(db.from("categories").insert({ name: `${prefix} ${slug}`, slug: `${prefix}-${slug}` }).select("id, slug").single());
   const post = (slug: string, status: "published" | "draft") =>
