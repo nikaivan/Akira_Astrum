@@ -1,14 +1,14 @@
 # Reglas astrológicas de la calculadora de compatibilidad
 
 > **Documento de especificación del dominio.** Lo redacta el humano (arquitecto); la IA no inventa ni modifica estas reglas. Los tests unitarios de `lib/astrology/` se escriben a partir de este documento.
-> **Estado: BORRADOR generado con ayuda de IA** a partir de las 12 páginas de compatibilidad de euroresidentes.com (datos de pareja) y su página de fechas de signos. Los textos de la sección 5 son de redacción propia (no copiados). **Ivan debe revisar y validar todo lo marcado con ⚠️ antes de dárselo a la IA de desarrollo**, y calcular a mano los casos de la sección 7.
+> **Estado: VALIDADO por Ivan (2026-11-02).** Se generó como borrador con ayuda de IA a partir de las 12 páginas de compatibilidad de euroresidentes.com (datos de pareja) y su página de fechas de signos. Los textos de la sección 5 son de redacción propia (no copiados). Ivan revisó las convenciones y calculó a mano los casos de la sección 7, por lo que el documento ya puede usarse como especificación para la IA de desarrollo.
 
 ## 1. Convenciones generales
 
-- **Sistema de referencia:** zodiaco tropical tradicional de 12 signos (sin Ofiuco). ⚠️ Confirmar.
+- **Sistema de referencia:** zodiaco tropical tradicional de 12 signos (sin Ofiuco).
 - **Qué se calcula:** solo el **signo solar**, a partir de la fecha de nacimiento. No se usa hora ni lugar de nacimiento, ni ascendente ni otras posiciones.
-- **Cúspides:** convención fija, la de la tabla de la sección 2 (tomada de euroresidentes.com). Cada fecha pertenece a un único signo. ⚠️ Otras fuentes difieren en ±1 día en algunos signos; tu criterio como docente manda.
-- **Rango de fechas admitido:** desde 1900 hasta la fecha actual. ⚠️ Decidir el año mínimo.
+- **Cúspides:** convención fija, la de la tabla de la sección 2 (tomada de euroresidentes.com). Cada fecha pertenece a un único signo. Otras fuentes difieren en ±1 día en algunos signos; prevalece el criterio de Ivan.
+- **Rango de fechas admitido:** desde 1900 hasta la fecha actual.
 - **Fecha 29 de febrero:** pertenece a **Piscis** (19/2–20/3).
 - **Fuente de la compatibilidad:** la tabla de parejas de la sección 4.1 (12×12) es la **fuente de verdad**. La matriz por elementos (4.2) solo se usa para elegir el texto explicativo.
 
@@ -64,7 +64,7 @@ Nivel para cada pareja (A = Alta, M = Media, B = Baja). Es simétrica por constr
 
 Recuento de parejas distintas (78 = 12 mismo signo + 66 de signos distintos): Alta 24, Media 33, Baja 21.
 
-Observaciones sobre los datos (⚠️ revisa si coinciden con tu criterio):
+Observaciones sobre los datos (revisadas por Ivan):
 - Mismo signo → siempre **Media** (12 de 12).
 - Signos opuestos (Aries-Libra, Tauro-Escorpio, Géminis-Sagitario, Cáncer-Capricornio, Leo-Acuario, Virgo-Piscis) → siempre **Media** (6 de 6).
 - Los signos del mismo elemento son siempre **Alta** entre sí cuando son signos distintos (12 parejas).
@@ -99,7 +99,7 @@ No se aplican: la tabla 4.1 ya es por pareja.
 
 ## 5. Textos explicativos
 
-Un texto por tipo de combinación, con marcadores `{signoA}`, `{signoB}`, `{elementoA}`, `{elementoB}`. El nivel se muestra aparte, así que los textos son neutros respecto al nivel. (Redacción propia, ⚠️ revisa el tono.)
+Un texto por tipo de combinación, con marcadores `{signoA}`, `{signoB}`, `{elementoA}`, `{elementoB}`. El nivel se muestra aparte, así que los textos son neutros respecto al nivel. (Redacción propia, revisada por Ivan.)
 
 | Tipo de combinación | Texto |
 |---|---|
@@ -123,7 +123,7 @@ Texto visible junto al resultado y reproducido en el README:
 
 ## 7. Casos de prueba de referencia
 
-⚠️ Calcúlalos tú a mano con la sección 2 y 4.1 antes de usarlos como tests; aquí están precalculados y verificados con script.
+Calculados a mano por Ivan con la sección 2 y 4.1, y verificados también con script.
 
 **Signo solar por fecha**
 
@@ -181,6 +181,6 @@ Texto visible junto al resultado y reproducido en el README:
 - [x] La tabla de parejas está completa (144 combinaciones) y es simétrica (verificado con script).
 - [x] No hay reglas adicionales ni excepciones que se contradigan.
 - [x] Hay un texto para cada tipo de combinación que pueda producirse.
-- [x] ⚠️ Los casos de prueba de la sección 7 se han calculado a mano.
-- [x] ⚠️ Ivan ha revisado la convención de cúspides, el año mínimo y la coincidencia de la tabla con su criterio astrológico.
+- [x] Los casos de prueba de la sección 7 se han calculado a mano.
+- [x] Ivan ha revisado la convención de cúspides, el año mínimo y la coincidencia de la tabla con su criterio astrológico.
 - [x] El aviso de uso está redactado.
