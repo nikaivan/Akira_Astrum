@@ -96,6 +96,7 @@ describe("funciones", () => {
   });
 
   it("todas tienen el search_path fijo y vacío", () => {
+    expect(report.functions.length).toBeGreaterThan(0);
     for (const fn of report.functions) expect(fn.config).toContain('search_path=""');
   });
 
@@ -105,6 +106,7 @@ describe("funciones", () => {
   });
 
   it("ninguna tiene EXECUTE para PUBLIC", () => {
+    expect(report.functions.length).toBeGreaterThan(0);
     expect(report.functions.filter((fn) => fn.public_execute)).toEqual([]);
   });
 });
