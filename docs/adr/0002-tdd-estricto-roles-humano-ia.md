@@ -1,6 +1,6 @@
 # ADR 0002: TDD estricto y reparto de roles humano-IA
 
-- **Estado:** Propuesto (borrador para revisión)
+- **Estado:** Aceptado (2026-11-02)
 - **Fecha:** 2026-11-02
 
 ## Contexto

@@ -1,6 +1,6 @@
 # ADR 0005: Versiones fijas y verificación de cada dependencia
 
-- **Estado:** Propuesto (borrador para revisión)
+- **Estado:** Aceptado (2026-11-02)
 - **Fecha:** 2026-11-02
 
 ## Contexto

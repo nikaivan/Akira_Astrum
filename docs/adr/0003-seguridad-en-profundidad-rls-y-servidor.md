@@ -1,6 +1,6 @@
 # ADR 0003: Seguridad en profundidad con comprobaciones en servidor y RLS
 
-- **Estado:** Propuesto (borrador para revisión)
+- **Estado:** Aceptado (2026-11-02)
 - **Fecha:** 2026-11-02
 
 ## Contexto
