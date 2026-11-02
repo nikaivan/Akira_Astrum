@@ -95,6 +95,27 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** PR nº 6 fusionado en `main` con la CI en verde.
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-02 · Fase 1 · Bloque 2: dominio astrológico (`lib/astrology/`)
+- **Objetivo de la sesión:** signo solar por fecha, compatibilidad 12×12 con sus textos y validación de la fecha, como lógica pura, a partir de `docs/astrologia-reglas.md`.
+- **Lo que pedí a la IA (resumen):** que tratara el documento como la única fuente de verdad (sin inventar ni cambiar reglas, fechas, niveles ni textos, y sin modificarlo), que me preguntara ante cualquier ambigüedad o contradicción, que propusiera primero la lista de tests y la estructura de módulos, y que siguiera rojo, verde y refactor. La lógica debía ser pura, sin red ni base de datos, y sin guardar ni registrar fechas.
+- **Lo que generó la IA (en una frase):** una lista de tests con 11 decisiones, 6 archivos de test más un ayudante que lee el documento, y 5 módulos en `lib/astrology/` con los datos generados desde el propio documento.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé la lista y después los tests escritos. Se vieron fallar en rojo (6 archivos, porque los módulos no existían) antes de instalar `zod` o escribir código.
+- **Lo que corregí o rechacé, y por qué:**
+  - Rechacé la primera versión del plan y añadí tres requisitos que no estaban: comprobar a ojo dos o tres filas de la matriz 12×12 además de comparar cada celda con el documento; tratar la fecha como día y mes sin zona horaria (el fallo típico de `new Date("2000-03-21")`); y verificar que el 29 de febrero es Piscis y que Capricornio funciona en diciembre y en enero. Los tres se incorporaron a los tests.
+  - Ante la ambigüedad que detectó la IA elegí: simetría solo del nivel y del tipo de texto (D1), sustitución literal de los marcadores (D2) y un test que lee el documento (D3).
+  - Aprobé el resto de decisiones propuestas (D4 a D9) sin cambios.
+- **Errores que detectaron los tests:** ninguno nuevo; la implementación pasó los 273 tests a la primera (66 de antes y 207 nuevos). Para comprobar que los tests discriminan, la IA rompió la implementación de nueve formas: ocho hicieron fallar entre 1 y 27 tests (la más fuerte, leer la fecha con `new Date()`, hizo fallar 27) y la novena no falló porque era una mutación equivalente.
+- **Ambigüedad real de la especificación:** §4.4 pide que el resultado de (A,B) sea igual al de (B,A), pero el texto cambia al invertir el orden en las 66 parejas distintas, porque los marcadores `{signoA}` y `{signoB}` salen en el orden de entrada. El nivel sí es simétrico. La IA lo detectó calculando las 66 parejas antes de proponer los tests y me lo preguntó en vez de elegir por su cuenta.
+- **Errores de la IA (no los detectó un test):**
+  - La primera lista de tests no cubría la zona horaria ni la comprobación de la matriz a ojo; los añadí yo al revisarla.
+  - Dos avisos del lint de seguridad en los tests nuevos (una directiva `eslint-disable` que sobraba y un índice con variable) que la IA corrigió antes de enseñármelos.
+  - Un recuento con el reporter JSON de Vitest creó por error un directorio `.vitest/` en el repositorio; se borró antes de cualquier commit y se comprobó que `npm test` no lo genera.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** sin ADR nuevo. Las decisiones D1 a D11 quedan en la lista de tests aprobada y en esta entrada. Las más arquitectónicas son D1 (simetría del nivel y del tipo de texto) y D10 (la fecha se trata como números, sin `Date` ni zona horaria); valorar registrarlas como ADR 0007.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** `zod` 4.6.7, ver la tabla "Dependencias añadidas".
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna.
+- **Resultado:** código y tests subidos en dos commits (`test:` y `feat:`); pendiente de fusionar en un PR.
+- **Tiempo aproximado:** no medido.
+
 ---
 
 ## Dependencias añadidas (resumen)
@@ -116,6 +137,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | `cn` 0.5.2 | Combinar clases de Tailwind; sustituye a `clsx` + `tailwind-merge` en `lib/utils.ts` (commit `b096433`, generado por el CLI de shadcn al aplicar mi configuración) | `shadcn-ui/cn`, mantenedor `shadcn`, MIT. Verificado con `npm view`. **Publicado el mismo día (2026-11-02):** paquete muy reciente |
 | 2026-11-02 | `@base-ui/react` 1.9.0 | Componentes sin estilos de `base-nova` (commit `b096433`) | `mui/base-ui`, MIT |
 | 2026-11-02 | `shadcn` 4.23.0 | CLI como dependencia de ejecución, porque `app/globals.css` importa `shadcn/tailwind.css` (commit `b096433`) | `shadcn-ui/ui`, MIT. Arrastra `@shadcn/registry` y `deepmerge`: 5 avisos nuevos en `npm audit` (2 bajos y 3 moderados) |
+| 2026-11-02 | `zod` 4.6.7 | Validación de la fecha de nacimiento en `lib/astrology/birth-date.ts` (Fase 1, bloque 2) | `colinhacks/zod`, MIT, sin dependencias propias. Versión exacta; `npm audit` sin cambios (0 altas) |
 | 2026-11-02 | `actions/checkout@v4`, `actions/setup-node@v4` (GitHub Actions) | CI (paso 7) | Repositorios oficiales `actions/*`, MIT, no archivados. Fijadas a la versión mayor, no a un hash |
 
 ## Desviaciones respecto al plan (resumen)
@@ -147,6 +169,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Fallos en mi máquina | Pegar la salida real de la terminal y pedir el porqué | Funcionó: la IA reprodujo el fallo en un clon limpio de `main` y separó los problemas de código de los de entorno | Pegar siempre el error completo, no un resumen |
 | Tests antes que código | Pedir la lista de tests con entradas y salidas y las decisiones abiertas marcadas (D1 a D6), y aprobarla antes de escribir nada | Funcionó: surgió la corrección del emoji antes de implementar, no después | Mantenerlo en cada bloque |
 | Confianza en los tests | Romper la implementación a propósito y ver que los tests fallan | Funcionó: 4 roturas detectadas (5, 9, 3 y 4 tests) | Repetirlo en los bloques con lógica de seguridad |
+| Especificación como fuente de verdad | "No inventes ni cambies reglas; si algo es ambiguo o contradictorio, pregúntame" | Funcionó: la IA calculó las 66 parejas, vio que el texto no puede ser simétrico y me lo preguntó | Dar siempre esa instrucción cuando hay un documento de reglas |
+| Requisitos de casos reales | Pedir los fallos típicos con su ejemplo (el día anterior de `new Date("2000-03-21")` en otra zona horaria) | Funcionó: se reprodujo el fallo (en Los Ángeles da el día 20) y se probó en cuatro zonas | Pedir ejemplos concretos, no solo "ten en cuenta la zona horaria" |
 | Estado de Git | "Comprueba dónde estás subiendo" | Destapó el error de la rama ya fusionada | Comprobar PR y rama tras cada fusión, antes del siguiente commit |
 
 ## Resumen final para la memoria (se completa al terminar)
