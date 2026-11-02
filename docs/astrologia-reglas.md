@@ -181,6 +181,6 @@ Texto visible junto al resultado y reproducido en el README:
 - [x] La tabla de parejas está completa (144 combinaciones) y es simétrica (verificado con script).
 - [x] No hay reglas adicionales ni excepciones que se contradigan.
 - [x] Hay un texto para cada tipo de combinación que pueda producirse.
-- [ ] ⚠️ Los casos de prueba de la sección 7 se han calculado a mano.
-- [ ] ⚠️ Ivan ha revisado la convención de cúspides, el año mínimo y la coincidencia de la tabla con su criterio astrológico.
+- [x] ⚠️ Los casos de prueba de la sección 7 se han calculado a mano.
+- [x] ⚠️ Ivan ha revisado la convención de cúspides, el año mínimo y la coincidencia de la tabla con su criterio astrológico.
 - [x] El aviso de uso está redactado.
