@@ -1,6 +1,6 @@
 # ADR 0004: Playwright con proyectos de escritorio y móvil emulado
 
-- **Estado:** Propuesto (borrador para revisión)
+- **Estado:** Aceptado (2026-11-02)
 - **Fecha:** 2026-11-02
 
 ## Contexto

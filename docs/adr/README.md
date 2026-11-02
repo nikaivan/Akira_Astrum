@@ -5,8 +5,8 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 
 | ADR | Decisión | Estado |
 |---|---|---|
-| [0001](0001-monolito-nextjs-supabase.md) | Monolito con Next.js y Supabase | Propuesto |
-| [0002](0002-tdd-estricto-roles-humano-ia.md) | TDD estricto y reparto de roles humano-IA | Propuesto |
-| [0003](0003-seguridad-en-profundidad-rls-y-servidor.md) | Seguridad en profundidad: servidor y RLS | Propuesto |
-| [0004](0004-playwright-escritorio-y-movil.md) | Playwright con proyectos de escritorio y móvil | Propuesto |
-| [0005](0005-versiones-fijadas-y-verificacion-de-dependencias.md) | Versiones fijas y verificación de dependencias | Propuesto |
+| [0001](0001-monolito-nextjs-supabase.md) | Monolito con Next.js y Supabase | Aceptado |
+| [0002](0002-tdd-estricto-roles-humano-ia.md) | TDD estricto y reparto de roles humano-IA | Aceptado |
+| [0003](0003-seguridad-en-profundidad-rls-y-servidor.md) | Seguridad en profundidad: servidor y RLS | Aceptado |
+| [0004](0004-playwright-escritorio-y-movil.md) | Playwright con proyectos de escritorio y móvil | Aceptado |
+| [0005](0005-versiones-fijadas-y-verificacion-de-dependencias.md) | Versiones fijas y verificación de dependencias | Aceptado |
