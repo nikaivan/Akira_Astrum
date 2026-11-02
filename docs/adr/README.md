@@ -14,3 +14,5 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0007](0007-dominio-astrologico-fuente-de-verdad-simetria-y-fechas-sin-zona-horaria.md) | Dominio astrológico: fuente de verdad, simetría y fechas sin zona horaria | Aceptado |
 | [0008](0008-control-de-acceso-rol-en-profiles-y-storage-no-listable.md) | Control de acceso: rol en `profiles`, `is_admin` privado, privilegios mínimos y Storage no listable | Aceptado |
 | [0009](0009-pruebas-de-integracion-proyecto-de-test-y-service-role-acotado.md) | Pruebas de integración contra un proyecto de test aparte, con guarda por ref y `service_role` acotado | Aceptado |
+| [0010](0010-autorizacion-en-capas-proxy-requireadmin-y-rls.md) | Autorización en capas (proxy, `requireAdmin` y RLS) que falla cerrado | Aceptado |
+| [0011](0011-login-y-sesion-mensaje-unico-limitador-en-memoria-y-cookies.md) | Login y sesión: mensaje único, limitador en memoria, cookies acotadas y e2e sobre el proyecto de test | Aceptado |

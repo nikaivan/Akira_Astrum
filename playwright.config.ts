@@ -1,11 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_BASE_URL, E2E_PORT, loadTestEnvironment, serverEnvFor } from "./tests/e2e/support/environment";
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+
+// Aborta antes de arrancar nada si el entorno no es el del proyecto de test (ver tests/integration/README.md).
+const testEnvironment = loadTestEnvironment();
 
 export default defineConfig({
   testDir: "tests/e2e",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: E2E_BASE_URL,
     launchOptions: { executablePath },
   },
   projects: [
@@ -13,8 +17,10 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    command: `npm run dev -- --port ${E2E_PORT}`,
+    url: E2E_BASE_URL,
+    // Nunca se reutiliza un servidor ya levantado: podría estar conectado a producción.
+    reuseExistingServer: false,
+    env: serverEnvFor(testEnvironment),
   },
 });
