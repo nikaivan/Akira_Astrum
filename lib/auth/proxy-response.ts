@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { AdminDecision } from "./authorize";
+import { PRIVATE_HEADERS } from "./private-headers";
 import { safeAdminPath } from "./redirect";
 
 function carryOver(from: NextResponse, to: NextResponse) {
@@ -11,8 +12,7 @@ function carryOver(from: NextResponse, to: NextResponse) {
 }
 
 function sealed(response: NextResponse): NextResponse {
-  response.headers.set("X-Robots-Tag", "noindex, nofollow");
-  response.headers.set("Cache-Control", "no-store");
+  for (const { key, value } of PRIVATE_HEADERS) response.headers.set(key, value);
   return response;
 }
 

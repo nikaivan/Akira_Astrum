@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { authorizeAdmin, type AdminDecision } from "./authorize";
+import { PRIVATE_HEADERS } from "./private-headers";
 
 export type AdminContext = { supabase: SupabaseClient; userId: string };
 
@@ -33,7 +34,7 @@ export function withAdminAction<Args extends unknown[], Result>(
 }
 
 const json = (status: number, error: string) =>
-  Response.json({ error }, { status, headers: { "Cache-Control": "no-store" } });
+  Response.json({ error }, { status, headers: Object.fromEntries(PRIVATE_HEADERS.map(({ key, value }) => [key, value])) });
 
 /** Capa 2 para Route Handlers de /admin: 401, 403 o 503 genéricos en JSON. */
 export function withAdminRoute<Args extends unknown[]>(

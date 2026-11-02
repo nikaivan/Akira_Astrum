@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
+import { PRIVATE_HEADERS } from "./lib/auth/private-headers";
 
-// La intranet y el login nunca se indexan ni se guardan en caché (A01, A07).
-const privateHeaders = [
-  { key: "X-Robots-Tag", value: "noindex, nofollow" },
-  { key: "Cache-Control", value: "no-store" },
-];
+const privateHeaders = [...PRIVATE_HEADERS];
 
 const nextConfig: NextConfig = {
   turbopack: {

@@ -14,6 +14,10 @@ function isAuthFailure(error: unknown): boolean {
   return name === "AuthSessionMissingError" || (typeof status === "number" && AUTH_FAILURE_STATUSES.has(status));
 }
 
+function roleOf(row: unknown): unknown {
+  return typeof row === "object" && row !== null && !Array.isArray(row) ? (row as { role?: unknown }).role : undefined;
+}
+
 /**
  * Decide si la petición viene de un admin (A01, A07, A10). Usa `getUser()`, que
  * valida el token contra Supabase Auth (nunca `getSession()`), y lee el rol de
@@ -35,8 +39,7 @@ export async function authorizeAdmin(supabase: SupabaseClient): Promise<AdminDec
   try {
     const { data, error } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
     if (error) return { status: "error" };
-    const role: unknown = typeof data === "object" && data !== null && !Array.isArray(data) ? (data as { role?: unknown }).role : undefined;
-    return role === "admin" ? { status: "allow", userId } : { status: "forbidden" };
+    return roleOf(data) === "admin" ? { status: "allow", userId } : { status: "forbidden" };
   } catch {
     return { status: "error" };
   }
