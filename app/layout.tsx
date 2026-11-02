@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+// Fuentes servidas desde el propio dominio con next/font (docs/design.md §3).
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: "Akira Astrum",
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={cn("h-full antialiased", "font-sans", geist.variable)}>
+    <html lang="es" className={cn("h-full antialiased", "font-sans", inter.variable, cormorant.variable)}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
