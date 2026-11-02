@@ -169,6 +169,32 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-02 · Fase 2 · Bloque 1: página pública de la calculadora de compatibilidad
+- **Objetivo de la sesión:** la página pública `/compatibilidad` (dos fechas de nacimiento, signo y elemento de cada persona, nivel con icono y texto, explicación y aviso de uso), reutilizando el dominio de `lib/astrology/` sin tocarlo, con validación en servidor, sin guardar nada y con límite de consultas. Después, el estilo de `docs/design.md`.
+- **Lo que pedí a la IA (resumen):** proponer ruta, componentes y si el cálculo va en Server Action o en el cliente, con la lista de tests por nivel, y esperar mi aprobación. Requisitos: Zod en servidor (fecha vacía, inexistente, futura, anterior a 1900, texto), errores legibles por lector de pantalla, sin persistencia ni logs ni red ni URL, `Cache-Control: no-store`, límite de intentos sin servicios de pago, textos como texto, datos del dominio sin inventar, móvil primero con objetivos de 44 px, e2e con dos casos de la sección 7, simetría al intercambiar las fechas y axe-core. Luego, rojo, verde, refactor y estilo, con un commit por ciclo tras mi aprobación.
+- **Lo que generó la IA (en una frase):** `lib/compatibility/` (esquema Zod, lógica pura, limitador, mensajes y Server Action), `app/compatibilidad/` (página, formulario y resultado), cabecera y pie públicos, 9 archivos de tests unitarios y un spec e2e de 21 casos.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé el plan y luego los tests. Rojo: 9 archivos unitarios sin cargar y 42 de 42 e2e fallando (21 tests por escritorio y móvil). Verde: 608 unitarios y 64 e2e sin Supabase (42 de la calculadora y 22 existentes).
+- **Quién ejecutó qué:** la IA ejecutó todo (la calculadora no usa Supabase). Yo la probé a mano en el navegador. Los e2e con Supabase (login) no se han repetido tras el cambio de estilo.
+- **Decisiones que tomé yo:** Server Action por `POST` (C1), con permiso para añadir una línea a `PUBLIC_ACTIONS` en el test de arquitectura del bloque 4; límite de 30 consultas cada 10 minutos por IP (C2); "hoy" es la fecha UTC del servidor (C3). Además aprobé las propuestas Q1 a Q7 (mensajes por campo, `noValidate`, errores accesibles, resultado con icono y texto, `no-store` sin `noindex`, mensaje de límite propio y sin dependencias nuevas).
+- **Lo que corregí o rechacé, y por qué:** di permiso, dos veces, para cambiar tests ya aprobados, ambos fallos de diseño de tests de la IA y no de aserciones: (1) los casos de texto inválido pasan a interceptar el `POST` real, porque React vuelve a fijar el tipo del campo `date` en cada evento y el valor se saneaba a vacío; (2) el test del teclado rellena con `fill`, porque teclear en un campo `date` depende del idioma del navegador. Decidí que el "hoy" en UTC no lleve margen de un día.
+- **Errores que detectaron los tests:**
+  - Los campos controlados perdían lo escrito si se rellenaban antes de hidratar; la IA los pasó a no controlados con `defaultValue`.
+  - Los e2e destaparon los dos tests mal planteados de arriba.
+  - Un test de arquitectura nuevo mencionaba la clave de servicio de Supabase y rompía la lista de archivos permitidos del bloque 4; la IA la sustituyó por una expresión que no contiene esa cadena.
+- **Errores de la IA (no los detectó un test, salvo donde se indica):**
+  - La primera verificación del estilo usó CSS obsoleto (la caché de Turbopack no recogió el cambio de `globals.css`) y los tests de contraste pasaron sobre la paleta vieja; lo vio al revisar las capturas con la vista y repitió toda la verificación con la caché limpia.
+  - Atribuyó un aviso de hidratación a la aplicación antes de comprobarlo: lo causaba Playwright al ocultar el cursor en las capturas.
+  - Escribió dos tests asumiendo comportamientos del navegador que no se cumplen (los dos de arriba).
+  - Un aviso de lint por una expresión regular dinámica en un test; lo sustituyó por una comprobación literal.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0012](adr/0012-calculadora-publica-sin-persistencia-server-action-post-y-limite-en-memoria.md), propuesto y pendiente de que lo acepte yo.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna. Se reutilizan `zod`, `lucide-react` (iconos) y el limitador del login.
+- **Desviación respecto al plan (si la hay) y motivo:** los campos de fecha llevan `min` pero no `max`, porque una página estática congelaría la fecha de hoy en el build; la validación real es la del servidor. El componente `Input` está escrito a mano con el estilo de shadcn porque el CLI no es accesible desde el entorno de la IA.
+- **Paso 4 (refactor y estilo):** un componente `Input` compartido sustituye a las clases duplicadas del login y de la calculadora, y se aplica `docs/design.md`: paleta (crema, índigo y dorado solo decorativo), Cormorant Garamond y Inter con `next/font`, cabecera y pie públicos y un botón en la portada. Los colores de los tres niveles usan la paleta de Tailwind, no tokens propios. Modo oscuro no aplicado.
+- **Resultado:** `/compatibilidad` completa y probada. Cobertura pendiente declarada: el log de eventos de seguridad (A09) y la CSP, en la Fase 3; el service worker de la PWA no debe cachear las respuestas de la acción (Fase 3). Aparte, en mi máquina la carpeta `components` tenía permisos de `root` y el `pull` fallaba; se arregló con `chown`, sin tocar el código.
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
