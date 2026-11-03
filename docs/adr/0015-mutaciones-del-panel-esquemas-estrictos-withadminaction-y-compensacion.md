@@ -1,6 +1,6 @@
 # ADR 0015: Mutaciones del panel: esquemas estrictos, `withAdminAction` en cada acción y compensación en lugar de transacción
 
-- **Estado:** Propuesto (2026-11-03)
+- **Estado:** Aceptado (2026-11-03)
 - **Fecha:** 2026-11-03
 
 ## Contexto
