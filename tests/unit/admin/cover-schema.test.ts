@@ -79,8 +79,9 @@ describe("portada: el archivo", () => {
     expect(result.success && result.data.cover).toBeUndefined();
   });
 
-  it("en el servidor de Next el campo vacío llega como un archivo de 0 bytes con el nombre indefinido: también es «sin archivo»", () => {
-    const empty = Object.defineProperty(new File([], "x"), "name", { value: undefined });
+  it("en el servidor de Next el campo vacío llega como un archivo de 0 bytes llamado «undefined» (new File([], undefined)): también es «sin archivo»", () => {
+    const empty = new File([], undefined as unknown as string);
+    expect(empty.name).toBe("undefined"); // así es como React reconstruye la parte vacía
     const result = parsePostForm(valid({ cover: empty }), "create");
     expect(result.success).toBe(true);
     expect(result.success && result.data.cover).toBeUndefined();

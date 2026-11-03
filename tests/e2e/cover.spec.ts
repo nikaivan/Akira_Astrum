@@ -124,15 +124,20 @@ async function captureCreateRequest(page: Page, base: string, label: string, fil
   return { captured, slug };
 }
 
-/** Reenvía la petición capturada con otro contexto (otras cookies) y, si se pide, con otro archivo y otro slug. */
+/**
+ * Reenvía la petición capturada con otro contexto (otras cookies) y, si se pide, con otro archivo y otro slug.
+ * Se construye un FormData y no un objeto: React necesita recibir las partes anidadas (_1_title…) ANTES de la raíz «0» para
+ * resolver su referencia ($K1), y en un objeto de JavaScript las claves numéricas se enumeran siempre primero (el servidor
+ * recibiría el formulario vacío).
+ */
 function replay(request: APIRequestContext, captured: Captured, changes: { file?: Buffer; slug?: string } = {}) {
-  const multipart: Record<string, string | { name: string; mimeType: string; buffer: Buffer }> = {};
+  const multipart = new FormData();
   for (const entry of captured.entries) {
     if (entry.file) {
-      const buffer = entry.name.endsWith("_cover") && changes.file ? changes.file : Buffer.from(entry.file.base64, "base64");
-      multipart[entry.name] = { name: entry.file.name || "portada.png", mimeType: entry.file.type || "image/png", buffer };
+      const bytes = entry.name.endsWith("_cover") && changes.file ? changes.file : Buffer.from(entry.file.base64, "base64");
+      multipart.append(entry.name, new File([new Uint8Array(bytes)], entry.file.name || "portada.png", { type: entry.file.type || "image/png" }));
     } else {
-      multipart[entry.name] = entry.name.endsWith("_slug") && changes.slug ? changes.slug : (entry.text ?? "");
+      multipart.append(entry.name, entry.name.endsWith("_slug") && changes.slug ? changes.slug : (entry.text ?? ""));
     }
   }
   const headers = Object.fromEntries(Object.entries(captured.headers).filter(([name]) => !["content-type", "content-length"].includes(name.toLowerCase())));
