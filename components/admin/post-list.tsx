@@ -43,7 +43,7 @@ export function PostList({ posts }: { posts: AdminPostRow[] }) {
               </Link>
               {published ? (
                 <>
-                  <Link href={`/blog/${post.slug}`} aria-label={`Ver «${post.title}» en el blog`} className={actionLink}>
+                  <Link href={`/blog/${post.slug}`} aria-label={`Ver en el blog: «${post.title}»`} className={actionLink}>
                     Ver en el blog
                   </Link>
                   <RowAction action={unpublishPost} id={post.id} label="Despublicar" ariaLabel={`Despublicar «${post.title}»`} />

@@ -1,12 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
-import type { BrowserContext } from "@playwright/test";
+import type { BrowserContext, Cookie } from "@playwright/test";
 import { assertTestEnvironment } from "../../integration/support/environment";
 
+type SessionCookie = Pick<Cookie, "name" | "value" | "domain" | "path" | "httpOnly" | "sameSite" | "secure">;
+
 /**
- * Deja en el contexto las cookies de sesión de un usuario, generadas con el propio @supabase/ssr
- * (mismo nombre y codificación que usa la aplicación), sin pasar por el formulario de login.
+ * Inicia sesión una vez y devuelve las cookies de sesión, generadas con el propio @supabase/ssr
+ * (mismo nombre y codificación que usa la aplicación). Cada inicio de sesión cuenta para el límite de
+ * Supabase Auth: quien necesite la sesión en muchos tests debe reutilizar estas cookies.
  */
-export async function addSessionCookies(context: BrowserContext, email: string, password: string): Promise<void> {
+export async function createSessionCookies(email: string, password: string): Promise<SessionCookie[]> {
   const { url, anonKey } = assertTestEnvironment(process.env);
   const captured = new Map<string, string>();
 
@@ -26,15 +29,18 @@ export async function addSessionCookies(context: BrowserContext, email: string, 
   for (let i = 0; i < 30 && captured.size === 0; i++) await new Promise((resolve) => setTimeout(resolve, 100));
   if (captured.size === 0) throw new Error("No se generaron las cookies de sesión.");
 
-  await context.addCookies(
-    [...captured].map(([name, value]) => ({
-      name,
-      value,
-      domain: "localhost",
-      path: "/",
-      httpOnly: true,
-      sameSite: "Lax" as const,
-      secure: false,
-    })),
-  );
+  return [...captured].map(([name, value]) => ({
+    name,
+    value,
+    domain: "localhost",
+    path: "/",
+    httpOnly: true,
+    sameSite: "Lax" as const,
+    secure: false,
+  }));
+}
+
+/** Deja en el contexto las cookies de sesión de un usuario, sin pasar por el formulario de login. */
+export async function addSessionCookies(context: BrowserContext, email: string, password: string): Promise<void> {
+  await context.addCookies(await createSessionCookies(email, password));
 }

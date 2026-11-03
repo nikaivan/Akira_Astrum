@@ -1,8 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./support/fixtures";
-import { countE2E, createE2EDraft, deleteE2EByPrefix, findE2ECategory, newE2EPrefix } from "./support/service-role";
-import { addSessionCookies } from "./support/session-cookies";
+import { countE2E, createE2EDraft, createE2EUser, deleteE2EByPrefix, deleteE2EUser, findE2ECategory, newE2EPrefix } from "./support/service-role";
+import { addSessionCookies, createSessionCookies } from "./support/session-cookies";
 
 // Los textos de la interfaz se escriben a propósito aquí y no se importan de la aplicación.
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -37,9 +37,24 @@ const horizontalOverflow = (page: Page) => page.evaluate(() => document.document
 const rowOf = (page: Page, title: string): Locator => page.getByRole("listitem").filter({ hasText: title });
 const publicStatus = async (request: { get: (url: string) => Promise<{ status: () => number }> }, path: string) => (await request.get(path)).status();
 
-async function asAdmin(page: Page, users: { admin: { email: string; password: string } }) {
-  await addSessionCookies(page.context(), users.admin.email, users.admin.password);
+// Una sesión de admin por trabajador, reutilizada en todos los tests del panel: cada inicio de sesión cuenta para el
+// límite de Supabase Auth. Es un usuario propio (no users.admin): el test de cerrar sesión revoca todas las sesiones
+// de users.admin y dejaría inservibles estas cookies.
+let panelSession: Promise<{ id: string; cookies: Awaited<ReturnType<typeof createSessionCookies>> }> | null = null;
+
+async function asAdmin(page: Page) {
+  panelSession ??= (async () => {
+    const user = await createE2EUser(`itest-e2e-${Math.random().toString(16).slice(2, 10)}`, "panel", "admin");
+    return { id: user.id, cookies: await createSessionCookies(user.email, user.password) };
+  })();
+  await page.context().addCookies((await panelSession).cookies);
 }
+
+test.afterAll(async () => {
+  const session = panelSession;
+  panelSession = null;
+  if (session) await deleteE2EUser((await session).id);
+});
 
 async function fillAndSave(page: Page, fields: { title: string; slug?: string; content?: string }, button: string) {
   await page.getByLabel("Título").fill(fields.title);
@@ -70,7 +85,7 @@ test.describe("flujo del admin", () => {
     await page.getByLabel("Correo electrónico").fill(users.admin.email);
     await page.getByLabel("Contraseña").fill(users.admin.password);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Entradas" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Panel de administración" })).toBeVisible();
 
     // Crear y guardar un borrador.
     await page.getByRole("link", { name: "Nueva entrada" }).click();
@@ -118,13 +133,15 @@ test.describe("flujo del admin", () => {
 
     await published.getByRole("button", { name: /^Eliminar/ }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Eliminar definitivamente" }).click();
+    // Con el modal abierto el fondo no está en el árbol de accesibilidad: sin esperar a que se cierre, el recuento de filas sería 0 de inmediato.
+    await expect(page.getByRole("alertdialog")).toBeHidden();
     await expect(rowOf(page, title)).toHaveCount(0);
     expect(await countE2E("posts", base)).toBe(0);
   });
 
   test("crear y publicar a la vez, y filtrar el listado por estado", async ({ page, request, users }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await fillAndSave(page, { title: `${base} Publicada`, slug: `${base}-publicada`, content: "Hola" }, "Publicar");
     await expect(page).toHaveURL((url) => url.pathname === "/admin");
@@ -142,9 +159,9 @@ test.describe("flujo del admin", () => {
     await expect(rowOf(page, `${base} Publicada`)).toHaveCount(0);
   });
 
-  test("validación: un título vacío no crea nada y el error se asocia al campo", async ({ page, users }) => {
+  test("validación: un título vacío no crea nada y el error se asocia al campo", async ({ page }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await fillAndSave(page, { title: "", slug: `${base}-vacio`, content: "x" }, "Guardar borrador");
 
@@ -162,7 +179,7 @@ test.describe("flujo del admin", () => {
   test("un slug repetido da un mensaje claro y no crea otra entrada", async ({ page, users }) => {
     const base = prefix();
     await createE2EDraft(users.admin.id, `${base}-repetido`, `${base} Primera`);
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await fillAndSave(page, { title: `${base} Segunda`, slug: `${base}-repetido`, content: "x" }, "Guardar borrador");
 
@@ -172,9 +189,9 @@ test.describe("flujo del admin", () => {
     expect(await countE2E("posts", base)).toBe(1);
   });
 
-  test("el slug se autorrellena desde el título mientras no se toca", async ({ page, users }) => {
+  test("el slug se autorrellena desde el título mientras no se toca", async ({ page }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await page.getByLabel("Título").fill(`${base} Ñandú: ¿Qué es el Sol?`);
     await expect(page.getByLabel("Dirección (slug)")).toHaveValue(`${base}-nandu-que-es-el-sol`);
@@ -182,10 +199,10 @@ test.describe("flujo del admin", () => {
 });
 
 test.describe("categorías", () => {
-  test("crear, renombrar, asignar a una entrada y eliminar con confirmación", async ({ page, request, users }) => {
+  test("crear, renombrar, asignar a una entrada y eliminar con confirmación", async ({ page, request }) => {
     const base = prefix();
     const name = `${base} Fuego`;
-    await asAdmin(page, users);
+    await asAdmin(page);
 
     await page.goto("/admin/categorias");
     await page.getByLabel("Nombre de la nueva categoría").fill(name);
@@ -213,6 +230,7 @@ test.describe("categorías", () => {
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toContainText(/1 entrada/);
     await dialog.getByRole("button", { name: "Eliminar definitivamente" }).click();
+    await expect(dialog).toBeHidden(); // ver el comentario del flujo: hasta que se cierra, las filas no están en el árbol de accesibilidad
     await expect(rowOf(page, `${name} vivo`)).toHaveCount(0);
     expect(await publicStatus(request, `/categorias/${category?.slug}`)).toBe(404);
     expect(await publicStatus(request, `/blog/${base}-con-categoria`)).toBe(200);
@@ -220,9 +238,9 @@ test.describe("categorías", () => {
 });
 
 test.describe("vista previa", () => {
-  test("usa el mismo sanitizado que el blog: nada se ejecuta y el resultado coincide", async ({ page, request, users }) => {
+  test("usa el mismo sanitizado que el blog: nada se ejecuta y el resultado coincide", async ({ page, request }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await page.getByLabel("Contenido (Markdown)").fill(HOSTILE);
     if (isMobile()) await page.getByRole("tab", { name: "Vista previa" }).click();
@@ -242,9 +260,9 @@ test.describe("vista previa", () => {
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
   });
 
-  test("el contenido hostil se guarda tal cual lo escribió el admin", async ({ page, users }) => {
+  test("el contenido hostil se guarda tal cual lo escribió el admin", async ({ page }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await fillAndSave(page, { title: `${base} Crudo`, slug: `${base}-crudo`, content: HOSTILE }, "Guardar borrador");
     await expect(page).toHaveURL((url) => url.pathname === "/admin");
@@ -259,13 +277,13 @@ test.describe("seguridad", () => {
     for (const path of ["/admin", "/admin/posts/new", "/admin/categorias"]) {
       const response = await page.goto(path);
       expect(response?.status()).toBe(403);
-      await expect(page.getByRole("heading", { name: /Entradas|Nueva entrada|Categorías/ })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: /Panel de administración|Nueva entrada|Categorías/ })).toHaveCount(0);
     }
   });
 
-  test("CSRF: la petición real de una acción, reenviada con otro Origin, se rechaza", async ({ page, users }) => {
+  test("CSRF: la petición real de una acción, reenviada con otro Origin, se rechaza", async ({ page }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/categorias");
 
     const captured = page.waitForRequest((req) => req.method() === "POST" && "next-action" in req.headers());
@@ -289,7 +307,7 @@ test.describe("responsive y teclado", () => {
   test("el listado se adapta: tarjetas sin tabla, sin scroll lateral y objetivos de 44 px", async ({ page, users }) => {
     const base = prefix();
     await createE2EDraft(users.admin.id, `${base}-uno`, `${base} Uno`);
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin");
     await expect(rowOf(page, `${base} Uno`)).toBeVisible();
 
@@ -301,8 +319,8 @@ test.describe("responsive y teclado", () => {
     }
   });
 
-  test("el editor: pestañas en móvil, doble columna en escritorio, 44 px y sin scroll lateral", async ({ page, users }) => {
-    await asAdmin(page, users);
+  test("el editor: pestañas en móvil, doble columna en escritorio, 44 px y sin scroll lateral", async ({ page }) => {
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await page.getByLabel("Contenido (Markdown)").fill("Hola");
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
@@ -335,7 +353,7 @@ test.describe("responsive y teclado", () => {
   test("teclado: Tab recorre el formulario con el foco visible hasta Guardar borrador, y el diálogo se cierra con Esc", async ({ page, users }) => {
     const base = prefix();
     await createE2EDraft(users.admin.id, `${base}-teclado`, `${base} Teclado`);
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     await page.getByLabel("Título").focus();
 
@@ -369,9 +387,9 @@ test.describe("accesibilidad (axe-core, WCAG 2 A y AA)", () => {
 
   test("listado vacío y con entradas", async ({ page, users }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto(`/admin?categoria=${base}-no-existe`);
-    await expect(page.getByRole("heading", { level: 1, name: "Entradas" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Panel de administración" })).toBeVisible();
     expect(await violations(page)).toEqual([]);
 
     await createE2EDraft(users.admin.id, `${base}-a`, `${base} A`);
@@ -382,7 +400,7 @@ test.describe("accesibilidad (axe-core, WCAG 2 A y AA)", () => {
 
   test("editor nuevo, con errores y en edición", async ({ page, users }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/posts/new");
     expect(await violations(page)).toEqual([]);
 
@@ -397,9 +415,9 @@ test.describe("accesibilidad (axe-core, WCAG 2 A y AA)", () => {
     expect(await violations(page)).toEqual([]);
   });
 
-  test("categorías y diálogo de confirmación abierto", async ({ page, users }) => {
+  test("categorías y diálogo de confirmación abierto", async ({ page }) => {
     const base = prefix();
-    await asAdmin(page, users);
+    await asAdmin(page);
     await page.goto("/admin/categorias");
     await page.getByLabel("Nombre de la nueva categoría").fill(`${base} Axe`);
     await page.getByRole("button", { name: "Crear categoría" }).click();

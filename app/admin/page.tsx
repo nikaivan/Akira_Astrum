@@ -21,7 +21,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Entradas</h1>
+        <h1 className="text-2xl font-semibold">Panel de administración</h1>
         <Link href="/admin/posts/new" className={cn(buttonVariants(), "h-11 px-4")}>
           Nueva entrada
         </Link>

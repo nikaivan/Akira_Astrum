@@ -56,6 +56,11 @@ export function PostEditor({ post, categories, imageOrigin, initialState = null 
     if (state && !state.ok) summary.current?.focus();
   }, [state]);
 
+  // El resumen repite los mensajes de cada campo, para que un lector de pantalla los oiga todos al llegar el foco.
+  const summaryMessages = Object.entries(fieldErrors)
+    .filter(([field]) => field !== "form")
+    .map(([, message]) => message);
+
   // Las claves son un conjunto cerrado de campos del formulario.
   /* eslint-disable security/detect-object-injection */
   const describe = (field: "title" | "slug" | "content" | "categoryIds", help?: string) => (fieldErrors[field] ? `${field}-error` : help);
@@ -76,7 +81,14 @@ export function PostEditor({ post, categories, imageOrigin, initialState = null 
 
       {state && !state.ok ? (
         <div ref={summary} role="alert" tabIndex={-1} className="rounded-lg border border-destructive bg-card p-4 text-base font-medium text-destructive outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          {state.message}
+          <p>{state.message}</p>
+          {summaryMessages.length > 0 ? (
+            <ul className="mt-2 list-disc pl-5">
+              {summaryMessages.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
       <p role="status" className={cn("text-base font-medium text-primary", state?.ok ? "" : "sr-only")}>
