@@ -195,6 +195,23 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-03 · Fase 4 (anticipada) · Esquema en producción y primer administrador
+- **Objetivo de la sesión:** entender por qué el login de la intranet rechazaba mis credenciales reales y dejar la intranet usable en mi `localhost` contra mi proyecto de producción.
+- **Lo que pedí a la IA (resumen):** que explicara si era un fallo o una función pendiente. La IA propuso dos consultas SQL de solo lectura (existencia de `profiles` y estado de mi usuario) y, al salir `null`, me dio los pasos para preparar el proyecto. No ejecutó nada en producción.
+- **Causa:** el proyecto de producción no tenía ninguna migración aplicada. Sin la tabla `profiles` la aplicación falla cerrado y devuelve el mismo mensaje genérico aunque la contraseña sea correcta (A07, A10): funcionaba como se diseñó, pero ese mensaje único oculta la causa, así que hizo falta mirar la base de datos.
+- **Lo que hice yo, a mano:** desactivar el registro de nuevos usuarios; aplicar en el editor SQL las tres migraciones de `supabase/migrations/` por orden de nombre, **sin** `tests/integration/support/test-project-helper.sql`; crear mi usuario con "Auto Confirm User" y su fila en `profiles` con `role = admin` mediante SQL. Comprobé que `to_regclass('public.profiles')` dejó de devolver `null`.
+- **Resultado:** el login funciona en `localhost` contra producción: entro en `/admin` con mi usuario.
+- **Lo que no se ha comprobado:**
+  - Los tests de integración y e2e solo corren contra el proyecto de test, nunca contra producción, así que el esquema de producción no está verificado por tests; solo por la prueba manual de arriba.
+  - Que el registro quedó desactivado en producción lo comprobé a mano en el panel; no hay test que lo confirme allí.
+  - Queda pendiente de la Fase 4 el despliegue en Vercel con las variables de entorno de producción.
+- **Desviación respecto al plan (si la hay) y motivo:** el esquema de producción se aplica antes de la Fase 4, para poder usar la intranet en local. Ver la tabla "Desviaciones respecto al plan".
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** ninguna nueva. Confirma el ADR 0003 y el ADR 0010 (falla cerrado) y el ADR 0011 (mensaje único).
+- **Dependencias nuevas:** ninguna.
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -236,6 +253,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | Scripts de instalación de `fsevents` (macOS) bloqueados por npm y sin autorizar | No son necesarios (A03: sin scripts de terceros innecesarios) | Ninguno |
 | 2026-11-02 | Aviso `EACCES` en `node_modules/.vitest-cache` en mi máquina | `node_modules` creado con permisos de `root` | Resuelto con `rm -rf node_modules && npm ci`; no era un problema del código |
 | 2026-11-02 | Los e2e fallaban en mi máquina | Causa de entorno, no de código (en un clon limpio de `main` pasan). Faltaba el navegador de Playwright en mi máquina | Resuelto instalando Chromium (`npx playwright install chromium`); no era un problema del código |
+| 2026-11-03 | Esquema de producción aplicado antes de la Fase 4 | Para usar la intranet en local; el login fallaba porque no existía `profiles` | Aplicadas a mano las 3 migraciones (sin la utilidad de test), registro desactivado y primer admin creado por SQL. Pendiente: despliegue en Vercel |
 | 2026-11-02 | El `smoke` e2e usa el puerto 3100 y `npm run test:e2e` exige `.env.test.local` | Para que los e2e no reutilicen un servidor levantado con `.env.local` (producción) | Hay que parar el `npm run dev` antes de ejecutar los e2e |
 
 ## Prompts que funcionaron y que no (opcional)
@@ -253,6 +271,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Entorno de pruebas | Fijar por escrito el entorno (proyecto de test aparte), las reglas de secretos (no leer `.env*`) y una guarda que aborte si la URL no coincide con un ref | Funcionó: la guarda abortó cuando faltaban las variables y nunca se tocó producción | Definir el entorno y los secretos antes de pedir los tests |
 | Rojo y verde reales | Pegar la salida completa de la ejecución en tu proyecto | Funcionó: destapó dos errores de la IA en sus propios tests que su emulación local no vio | No sustituir la ejecución real por una emulación |
 | Estado de Git | "Comprueba dónde estás subiendo" | Destapó el error de la rama ya fusionada | Comprobar PR y rama tras cada fusión, antes del siguiente commit |
+| Un error sin pistas | Preguntar si era un fallo o algo pendiente y pedir consultas SQL de solo lectura para distinguirlo | Funcionó: una sola consulta (`to_regclass`) separó "login roto" de "base de datos vacía" sin tocar nada | Con mensajes de error genéricos a propósito, pedir un diagnóstico de solo lectura antes de cambiar nada |
 
 ## Resumen final para la memoria (se completa al terminar)
 
