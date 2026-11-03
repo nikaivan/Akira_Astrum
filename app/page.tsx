@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
+import { textLinkClass } from "@/components/ui/link-styles";
 import { PostCard } from "@/components/post-card";
 import { listPublishedPosts } from "@/lib/blog/queries";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -44,10 +45,7 @@ export default async function Home() {
               ))}
             </ul>
           )}
-          <Link
-            href="/blog"
-            className="inline-flex min-h-11 items-center self-start rounded-lg text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
+          <Link href="/blog" className={cn(textLinkClass, "self-start underline")}>
             Ver todas las entradas
           </Link>
         </section>
