@@ -16,4 +16,4 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0009](0009-pruebas-de-integracion-proyecto-de-test-y-service-role-acotado.md) | Pruebas de integración contra un proyecto de test aparte, con guarda por ref y `service_role` acotado | Aceptado |
 | [0010](0010-autorizacion-en-capas-proxy-requireadmin-y-rls.md) | Autorización en capas (proxy, `requireAdmin` y RLS) que falla cerrado | Aceptado |
 | [0011](0011-login-y-sesion-mensaje-unico-limitador-en-memoria-y-cookies.md) | Login y sesión: mensaje único, limitador en memoria, cookies acotadas y e2e sobre el proyecto de test | Aceptado |
-| [0012](0012-calculadora-publica-sin-persistencia-server-action-post-y-limite-en-memoria.md) | Calculadora pública sin persistencia: Server Action por POST, validación en servidor y límite en memoria | Propuesto |
+| [0012](0012-calculadora-publica-sin-persistencia-server-action-post-y-limite-en-memoria.md) | Calculadora pública sin persistencia: Server Action por POST, validación en servidor y límite en memoria | Aceptado |

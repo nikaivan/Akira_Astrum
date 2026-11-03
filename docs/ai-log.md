@@ -186,7 +186,7 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
   - Atribuyó un aviso de hidratación a la aplicación antes de comprobarlo: lo causaba Playwright al ocultar el cursor en las capturas.
   - Escribió dos tests asumiendo comportamientos del navegador que no se cumplen (los dos de arriba).
   - Un aviso de lint por una expresión regular dinámica en un test; lo sustituyó por una comprobación literal.
-- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0012](adr/0012-calculadora-publica-sin-persistencia-server-action-post-y-limite-en-memoria.md), propuesto y pendiente de que lo acepte yo.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0012](adr/0012-calculadora-publica-sin-persistencia-server-action-post-y-limite-en-memoria.md), aceptado por mí el 2026-11-03.
 - **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna. Se reutilizan `zod`, `lucide-react` (iconos) y el limitador del login.
 - **Desviación respecto al plan (si la hay) y motivo:** los campos de fecha llevan `min` pero no `max`, porque una página estática congelaría la fecha de hoy en el build; la validación real es la del servidor. El componente `Input` está escrito a mano con el estilo de shadcn porque el CLI no es accesible desde el entorno de la IA.
 - **Paso 4 (refactor y estilo):** un componente `Input` compartido sustituye a las clases duplicadas del login y de la calculadora, y se aplica `docs/design.md`: paleta (crema, índigo y dorado solo decorativo), Cormorant Garamond y Inter con `next/font`, cabecera y pie públicos y un botón en la portada. Los colores de los tres niveles usan la paleta de Tailwind, no tokens propios. Modo oscuro no aplicado.
