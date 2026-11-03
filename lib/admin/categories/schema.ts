@@ -1,6 +1,6 @@
 import { z } from "zod";
 import * as messages from "@/lib/admin/messages";
-import type { Parsed } from "@/lib/admin/posts/schema";
+import type { Parsed } from "@/lib/admin/result";
 
 export const CATEGORY_LIMITS = { name: 60 } as const;
 

@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { formDataToObject } from "@/lib/admin/form-data";
-import { revalidatePublicPages } from "@/lib/admin/revalidate";
-import { toActionState, type ActionState } from "@/lib/admin/state";
+import { settleAndRevalidate } from "@/lib/admin/revalidate";
+import type { ActionState } from "@/lib/admin/state";
 import { withAdminAction } from "@/lib/auth/require-admin";
 import { performCreatePost, performDeletePost, performPublishPost, performUnpublishPost, performUpdatePost } from "./service";
 
@@ -14,31 +14,27 @@ const IDS_ONLY = { arrays: [] } as const;
 
 export const createPost = withAdminAction(async ({ supabase, userId }, _previous: ActionState, formData: FormData): Promise<ActionState> => {
   const result = await performCreatePost({ supabase, userId, input: formDataToObject(formData), now: new Date() });
-  if (!result.ok) return toActionState(result);
-  revalidatePublicPages();
+  const state = settleAndRevalidate(result);
+  if (!result.ok) return state;
   redirect("/admin");
 });
 
 export const updatePost = withAdminAction(async ({ supabase, userId }, _previous: ActionState, formData: FormData): Promise<ActionState> => {
   const result = await performUpdatePost({ supabase, userId, input: formDataToObject(formData), now: new Date() });
-  if (result.ok) revalidatePublicPages();
-  return toActionState(result);
+  return settleAndRevalidate(result);
 });
 
 export const publishPost = withAdminAction(async ({ supabase, userId }, _previous: ActionState, formData: FormData): Promise<ActionState> => {
   const result = await performPublishPost({ supabase, userId, input: formDataToObject(formData, IDS_ONLY), now: new Date() });
-  if (result.ok) revalidatePublicPages();
-  return toActionState(result);
+  return settleAndRevalidate(result);
 });
 
 export const unpublishPost = withAdminAction(async ({ supabase, userId }, _previous: ActionState, formData: FormData): Promise<ActionState> => {
   const result = await performUnpublishPost({ supabase, userId, input: formDataToObject(formData, IDS_ONLY), now: new Date() });
-  if (result.ok) revalidatePublicPages();
-  return toActionState(result);
+  return settleAndRevalidate(result);
 });
 
 export const deletePost = withAdminAction(async ({ supabase, userId }, _previous: ActionState, formData: FormData): Promise<ActionState> => {
   const result = await performDeletePost({ supabase, userId, input: formDataToObject(formData, IDS_ONLY), now: new Date() });
-  if (result.ok) revalidatePublicPages();
-  return toActionState(result);
+  return settleAndRevalidate(result);
 });

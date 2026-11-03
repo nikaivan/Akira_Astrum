@@ -1,5 +1,6 @@
 import { z } from "zod";
 import * as messages from "@/lib/admin/messages";
+import type { Parsed } from "@/lib/admin/result";
 import { isValidSlug } from "@/lib/posts/slug";
 
 export const POST_LIMITS = { title: 200, slug: 80, content: 50_000, categories: 10 } as const;
@@ -7,8 +8,6 @@ export const POST_LIMITS = { title: 200, slug: 80, content: 50_000, categories: 
 export type PostFieldErrors = { title?: string; slug?: string; content?: string; categoryIds?: string; intent?: string; id?: string; form?: string };
 export type PostIntent = "save" | "publish" | "unpublish";
 export type PostInput = { id?: string; title: string; slug: string; content: string; categoryIds: string[]; intent: PostIntent };
-
-export type Parsed<T, E> = { success: true; data: T } | { success: false; errors: E };
 
 const FIELD_MESSAGES: Record<string, (code: string) => string> = {
   title: (code) => (code === "too_big" ? messages.TITLE_TOO_LONG : messages.TITLE_REQUIRED),

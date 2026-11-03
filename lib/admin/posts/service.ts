@@ -1,30 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as messages from "@/lib/admin/messages";
+import { fail, guarded, invalid, PG_FOREIGN_KEY_VIOLATION, PG_UNIQUE_VIOLATION, type Failure } from "@/lib/admin/result";
 import { isValidSlug, slugify, uniqueSlug } from "@/lib/posts/slug";
 import { publish, unpublish, type PostState } from "@/lib/posts/status";
 import { parsePostDeleteForm, parsePostForm, parsePostIdForm, type PostFieldErrors, type PostInput } from "./schema";
 
-export type PostResult =
-  | { ok: true; id: string; slug: string; message: string }
-  | { ok: false; message: string; fieldErrors?: PostFieldErrors };
+export type PostResult = { ok: true; id: string; slug: string; message: string } | Failure<PostFieldErrors>;
 
 type Context = { supabase: SupabaseClient; userId: string; input: unknown; now: Date };
 type PostRow = { id: string; slug: string; status: string; published_at: string | null };
-
-const UNIQUE_VIOLATION = "23505";
-const FOREIGN_KEY_VIOLATION = "23503";
-
-const fail = (message: string, fieldErrors?: PostFieldErrors): PostResult => ({ ok: false, message, ...(fieldErrors ? { fieldErrors } : {}) });
-const invalid = (errors: PostFieldErrors): PostResult => fail(errors.form ? messages.INVALID_REQUEST : messages.VALIDATION_SUMMARY, errors);
-
-/** Cualquier excepción o fallo inesperado falla cerrado con un mensaje genérico (A10): nada interno sale al cliente. */
-async function guarded(run: () => Promise<PostResult>): Promise<PostResult> {
-  try {
-    return await run();
-  } catch {
-    return fail(messages.GENERIC_ERROR);
-  }
-}
 
 const stateOf = (row: PostRow): PostState => ({
   status: row.status as PostState["status"],
@@ -77,7 +61,7 @@ export function performCreatePost({ supabase, userId, input, now }: Context): Pr
       .insert({ title: data.title, slug, content_md: data.content, status: state.status, published_at: state.publishedAt?.toISOString() ?? null, author_id: userId })
       .select("id")
       .single();
-    if (error || !created) return error?.code === UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { slug: messages.SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
+    if (error || !created) return error?.code === PG_UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { slug: messages.SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
     const id = String((created as { id: unknown }).id);
 
     if (data.categoryIds.length > 0) {
@@ -89,7 +73,7 @@ export function performCreatePost({ supabase, userId, input, now }: Context): Pr
         } catch {
           // sin efecto: el resultado ya es un fallo
         }
-        return linkError.code === FOREIGN_KEY_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { categoryIds: messages.CATEGORY_MISSING }) : fail(messages.GENERIC_ERROR);
+        return linkError.code === PG_FOREIGN_KEY_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { categoryIds: messages.CATEGORY_MISSING }) : fail(messages.GENERIC_ERROR);
       }
     }
     return { ok: true, id, slug, message: messages.POST_CREATED };
@@ -106,7 +90,7 @@ async function replaceCategories(supabase: SupabaseClient, postId: string, wante
   // Primero se añaden las nuevas y después se quitan las sobrantes: un fallo nunca deja la entrada sin categorías.
   if (toAdd.length > 0) {
     const { error: addError } = await supabase.from("post_categories").insert(toAdd.map((categoryId) => ({ post_id: postId, category_id: categoryId })));
-    if (addError) return addError.code === FOREIGN_KEY_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { categoryIds: messages.CATEGORY_MISSING }) : fail(messages.GENERIC_ERROR);
+    if (addError) return addError.code === PG_FOREIGN_KEY_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { categoryIds: messages.CATEGORY_MISSING }) : fail(messages.GENERIC_ERROR);
   }
   if (toRemove.length > 0) {
     const { error: removeError } = await supabase.from("post_categories").delete().eq("post_id", postId).in("category_id", toRemove);
@@ -144,7 +128,7 @@ export function performUpdatePost({ supabase, input, now }: Context): Promise<Po
 
     // Protegida por el estado leído: si otra petición lo cambió entre medias, no se pisa nada.
     const { data: updated, error } = await supabase.from("posts").update(patch).eq("id", data.id).eq("status", current.status).select("id");
-    if (error) return error.code === UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { slug: messages.SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
+    if (error) return error.code === PG_UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { slug: messages.SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
     if (!updated || updated.length === 0) return fail(alreadyIn(data.intent));
 
     const categoriesFailure = await replaceCategories(supabase, data.id, data.categoryIds);

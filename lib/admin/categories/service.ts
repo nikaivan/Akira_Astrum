@@ -1,26 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as messages from "@/lib/admin/messages";
+import { fail, guarded, invalid, PG_UNIQUE_VIOLATION, type Failure } from "@/lib/admin/result";
 import { slugify, uniqueSlug } from "@/lib/posts/slug";
 import { parseCategoryDeleteForm, parseCategoryForm, type CategoryFieldErrors } from "./schema";
 
-export type CategoryResult =
-  | { ok: true; id: string; slug?: string; message: string; removedFromPosts?: number }
-  | { ok: false; message: string; fieldErrors?: CategoryFieldErrors };
+export type CategoryResult = { ok: true; id: string; slug?: string; message: string; removedFromPosts?: number } | Failure<CategoryFieldErrors>;
 
 type Context = { supabase: SupabaseClient; userId: string; input: unknown };
-
-const UNIQUE_VIOLATION = "23505";
-
-const fail = (message: string, fieldErrors?: CategoryFieldErrors): CategoryResult => ({ ok: false, message, ...(fieldErrors ? { fieldErrors } : {}) });
-const invalid = (errors: CategoryFieldErrors): CategoryResult => fail(errors.form ? messages.INVALID_REQUEST : messages.VALIDATION_SUMMARY, errors);
-
-async function guarded(run: () => Promise<CategoryResult>): Promise<CategoryResult> {
-  try {
-    return await run();
-  } catch {
-    return fail(messages.GENERIC_ERROR);
-  }
-}
 
 export function performCreateCategory({ supabase, input }: Context): Promise<CategoryResult> {
   return guarded(async () => {
@@ -39,7 +25,7 @@ export function performCreateCategory({ supabase, input }: Context): Promise<Cat
     const slug = uniqueSlug(base, (taken ?? []).map((row) => String((row as { slug: unknown }).slug)));
 
     const { data, error } = await supabase.from("categories").insert({ name, slug }).select("id").single();
-    if (error || !data) return error?.code === UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { name: messages.CATEGORY_SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
+    if (error || !data) return error?.code === PG_UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { name: messages.CATEGORY_SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
     return { ok: true, id: String((data as { id: unknown }).id), slug, message: messages.CATEGORY_CREATED };
   });
 }
