@@ -10,11 +10,12 @@ import type { ActionState } from "@/lib/admin/state";
 import { slugify } from "@/lib/posts/slug";
 import { cn } from "@/lib/utils";
 import { CategoryPicker } from "./category-picker";
+import { CoverField } from "./cover-field";
 import { EditorTabs, type EditorTab } from "./editor-tabs";
 import { MarkdownPreview } from "./markdown-preview";
 import { cardClass, errorClass, helpClass, labelClass } from "./styles";
 
-type PostValues = { id: string; title: string; slug: string; content: string; status: "draft" | "published"; categoryIds: string[] };
+type PostValues = { id: string; title: string; slug: string; content: string; status: "draft" | "published"; categoryIds: string[]; cover?: { url: string; alt: string } | null };
 type Props = {
   post?: PostValues;
   categories: { id: string; name: string }[];
@@ -34,7 +35,19 @@ function slugFromTitle(title: string): string {
 }
 
 export function PostEditor({ post, categories, imageOrigin, initialState = null }: Props) {
-  const [state, formAction, pending] = useActionState(post ? updatePost : createPost, initialState);
+  // React reinicia los campos sin controlar tras cada envío, también si el servidor devuelve errores: el archivo de portada
+  // elegido se guarda aparte y se vuelve a añadir en cada envío, para que no se pierda ni se envíe a medias.
+  const coverFile = useRef<File | null>(null);
+  const [coverKey, setCoverKey] = useState(0);
+  const [state, formAction, pending] = useActionState(async (previous: ActionState, formData: FormData) => {
+    if (coverFile.current) formData.set("cover", coverFile.current);
+    const next = await (post ? updatePost : createPost)(previous, formData);
+    if (next?.ok) {
+      coverFile.current = null;
+      setCoverKey((key) => key + 1); // reinicia el campo de portada con lo ya guardado
+    }
+    return next;
+  }, initialState);
   const fieldErrors: Record<string, string> = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const summary = useRef<HTMLDivElement>(null);
 
@@ -78,9 +91,10 @@ export function PostEditor({ post, categories, imageOrigin, initialState = null 
           ) : null}
         </div>
       ) : null}
-      <p role="status" className={cn("text-base font-medium text-primary", state?.ok ? "" : "sr-only")}>
-        {state?.ok ? state.message : ""}
-      </p>
+      <div role="status" className={cn("grid gap-1 text-base font-medium", state?.ok ? "" : "sr-only")}>
+        {state?.ok ? <p className="text-primary">{state.message}</p> : null}
+        {state?.ok && state.warning ? <p className="text-destructive">{state.warning}</p> : null}
+      </div>
 
       <section className={cn(cardClass, "grid gap-5")}>
         <div className="grid gap-1">
@@ -137,6 +151,16 @@ export function PostEditor({ post, categories, imageOrigin, initialState = null 
         </div>
 
         <CategoryPicker categories={categories} selected={selected} onChange={setSelected} error={fieldErrors.categoryIds} />
+
+        <CoverField
+          key={`${coverKey}:${post?.cover?.url ?? ""}`}
+          existing={post?.cover ?? null}
+          coverError={fieldErrors.cover}
+          altError={fieldErrors.coverAlt}
+          onFileChange={(file) => {
+            coverFile.current = file;
+          }}
+        />
       </section>
 
       <section className={cn(cardClass, "grid gap-4")}>

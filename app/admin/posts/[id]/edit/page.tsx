@@ -16,7 +16,7 @@ export default async function EditPostPage({ params }: PageProps<"/admin/posts/[
   const parsed = z.uuid().safeParse((await params).id);
   if (!parsed.success) notFound();
 
-  const [post, categories] = await Promise.all([getAdminPost(supabase, parsed.data), listCategoryOptions(supabase)]);
+  const [post, categories] = await Promise.all([getAdminPost(supabase, parsed.data, process.env.NEXT_PUBLIC_SUPABASE_URL), listCategoryOptions(supabase)]);
   if (!post) notFound();
 
   return (

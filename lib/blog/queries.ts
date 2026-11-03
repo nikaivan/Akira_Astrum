@@ -12,6 +12,8 @@ export type PostCardData = {
   slug: string;
   title: string;
   coverUrl: string | null;
+  /** Texto alternativo de la portada; vacío si no lo hay (la imagen se trata entonces como decorativa). */
+  coverAlt?: string;
   categories: CategoryRef[];
   publishedAt: string;
   dateLabel: string;
@@ -26,7 +28,7 @@ type Options = { origin: string | null | undefined };
 
 const MAX_LIMIT = 50;
 // Columnas explícitas: nunca *, ni el autor, ni el estado.
-const COLUMNS = "id, slug, title, cover_image_path, published_at, content_md, post_categories(categories(name, slug))";
+const COLUMNS = "id, slug, title, cover_image_path, cover_alt, published_at, content_md, post_categories(categories(name, slug))";
 
 const clampLimit = (limit: number) => (Number.isFinite(limit) ? Math.min(MAX_LIMIT, Math.max(1, Math.floor(limit))) : MAX_LIMIT);
 
@@ -54,6 +56,7 @@ function parseRow(row: unknown, origin: Options["origin"]): { card: PostCardData
     slug: text(row.slug),
     title: text(row.title),
     coverUrl: coverImageUrl(origin, typeof row.cover_image_path === "string" ? row.cover_image_path : null),
+    coverAlt: typeof row.cover_alt === "string" ? row.cover_alt : "",
     categories: categoriesOf(row),
     publishedAt,
     dateLabel: formatPublishedDate(publishedAt),

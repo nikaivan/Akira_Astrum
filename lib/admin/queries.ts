@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { coverImageUrl } from "@/lib/blog/cover";
 import type { ListFilters } from "./posts/filters";
 
 /** Lecturas del panel: con la sesión del admin (RLS le deja ver también los borradores). Un fallo lanza y lo recoge app/error.tsx. */
@@ -14,7 +15,16 @@ export type AdminPostRow = {
   publishedAt: string | null;
   categories: { name: string; slug: string }[];
 };
-export type AdminPostDetail = { id: string; title: string; slug: string; content: string; status: "draft" | "published"; categoryIds: string[] };
+export type AdminPostDetail = {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  status: "draft" | "published";
+  categoryIds: string[];
+  /** Portada actual (URL pública y texto alternativo), o null si no tiene. */
+  cover: { url: string; alt: string } | null;
+};
 export type CategoryOption = { id: string; name: string; slug: string };
 export type CategoryWithCount = CategoryOption & { postCount: number };
 
@@ -53,12 +63,30 @@ export async function listAdminPosts(supabase: SupabaseClient, filters: ListFilt
   return ((data ?? []) as unknown as RawRow[]).map(toRow);
 }
 
-export async function getAdminPost(supabase: SupabaseClient, id: string): Promise<AdminPostDetail | null> {
-  const { data, error } = await supabase.from("posts").select("id, title, slug, content_md, status, post_categories(category_id)").eq("id", id).maybeSingle();
+export async function getAdminPost(supabase: SupabaseClient, id: string, storageOrigin?: string | null): Promise<AdminPostDetail | null> {
+  const { data, error } = await supabase.from("posts").select("id, title, slug, content_md, status, cover_image_path, cover_alt, post_categories(category_id)").eq("id", id).maybeSingle();
   if (error) throw new Error("No se pudo cargar la entrada");
   if (!data) return null;
-  const row = data as unknown as { id: string; title: string; slug: string; content_md: string; status: "draft" | "published"; post_categories: { category_id: string }[] | null };
-  return { id: row.id, title: row.title, slug: row.slug, content: row.content_md, status: row.status, categoryIds: (row.post_categories ?? []).map((link) => link.category_id) };
+  const row = data as unknown as {
+    id: string;
+    title: string;
+    slug: string;
+    content_md: string;
+    status: "draft" | "published";
+    cover_image_path: string | null;
+    cover_alt: string | null;
+    post_categories: { category_id: string }[] | null;
+  };
+  const url = coverImageUrl(storageOrigin, row.cover_image_path);
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    content: row.content_md,
+    status: row.status,
+    categoryIds: (row.post_categories ?? []).map((link) => link.category_id),
+    cover: url ? { url, alt: row.cover_alt ?? "" } : null,
+  };
 }
 
 export async function listCategoryOptions(supabase: SupabaseClient): Promise<CategoryOption[]> {

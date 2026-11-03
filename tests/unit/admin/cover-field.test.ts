@@ -75,7 +75,9 @@ describe("PostEditor: entrada con portada", () => {
 
   it("el alt de la vista previa se escapa", () => {
     const hostile = render({ post: { ...draft, cover: { url: COVER_URL, alt: '"><script>alert(1)</script>' } } });
-    expect(hostile).not.toMatch(/<script/i);
+    // React añade su propio <script> de reintento a los formularios con acción: se busca el payload, no cualquier script.
+    expect(hostile).not.toMatch(/<script>alert\(1\)/);
+    expect(hostile).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
   });
 });
 
