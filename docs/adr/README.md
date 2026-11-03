@@ -17,3 +17,5 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0010](0010-autorizacion-en-capas-proxy-requireadmin-y-rls.md) | Autorización en capas (proxy, `requireAdmin` y RLS) que falla cerrado | Aceptado |
 | [0011](0011-login-y-sesion-mensaje-unico-limitador-en-memoria-y-cookies.md) | Login y sesión: mensaje único, limitador en memoria, cookies acotadas y e2e sobre el proyecto de test | Aceptado |
 | [0012](0012-calculadora-publica-sin-persistencia-server-action-post-y-limite-en-memoria.md) | Calculadora pública sin persistencia: Server Action por POST, validación en servidor y límite en memoria | Aceptado |
+| [0013](0013-markdown-publico-sanitizado-react-markdown-y-lista-blanca-explicita.md) | Markdown público sanitizado: react-markdown sin HTML crudo y lista blanca explícita | Propuesto |
+| [0014](0014-lectura-publica-sin-cache-cliente-anonimo-y-404-unico.md) | Lectura pública sin caché: cliente anónimo sin cookies, `force-dynamic` y un único 404 | Propuesto |
