@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { createCategory, deleteCategory, renameCategory } from "@/lib/admin/categories/actions";
 import { cn } from "@/lib/utils";
 import { ConfirmDelete } from "./confirm-delete";
+import { cardClass, errorClass, helpClass, labelClass } from "./styles";
 
 type CategoryItem = { id: string; name: string; slug: string; postCount: number };
 
@@ -29,12 +30,12 @@ function RenameForm({ category }: { category: CategoryItem }) {
           className="max-w-xs"
           autoComplete="off"
         />
-        <Button type="submit" variant="outline" className="h-11 px-4" disabled={pending}>
+        <Button type="submit" variant="outline" size="touch" disabled={pending}>
           Guardar nombre
         </Button>
       </div>
       {failed ? (
-        <p id={errorId} role="alert" className="text-base font-medium text-destructive">
+        <p id={errorId} role="alert" className={errorClass}>
           {state.fieldErrors?.name ?? state.message}
         </p>
       ) : null}
@@ -47,9 +48,9 @@ export function CategoryManager({ categories }: { categories: CategoryItem[] }) 
   const failed = state && !state.ok;
 
   return (
-    <div className="grid gap-8">
-      <form action={formAction} noValidate className="grid gap-2 rounded-xl border bg-card p-4">
-        <label htmlFor="category-name" className="text-base font-medium">
+    <div className="grid gap-6">
+      <form action={formAction} noValidate className={cn(cardClass, "grid gap-2")}>
+        <label htmlFor="category-name" className={labelClass}>
           Nombre de la nueva categoría
         </label>
         <div className="flex flex-wrap gap-2">
@@ -62,26 +63,26 @@ export function CategoryManager({ categories }: { categories: CategoryItem[] }) 
             className="max-w-xs"
             autoComplete="off"
           />
-          <Button type="submit" className="h-11 px-4" disabled={pending}>
+          <Button type="submit" size="touch" disabled={pending}>
             Crear categoría
           </Button>
         </div>
         {failed ? (
-          <p id="category-name-error" role="alert" className="text-base font-medium text-destructive">
+          <p id="category-name-error" role="alert" className={errorClass}>
             {state.fieldErrors?.name ?? state.message}
           </p>
         ) : null}
       </form>
 
       {categories.length === 0 ? (
-        <p className="text-base text-muted-foreground">Todavía no hay categorías.</p>
+        <p className={helpClass}>Todavía no hay categorías.</p>
       ) : (
         <ul className="grid gap-3">
           {categories.map((category) => (
-            <li key={category.id} className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[1fr_auto_auto] md:items-start">
+            <li key={category.id} className={cn(cardClass, "grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-start")}>
               <div className="min-w-0">
-                <p className="text-lg font-semibold [overflow-wrap:anywhere]">{category.name}</p>
-                <p className={cn("text-base text-muted-foreground")}>{countLabel(category.postCount)}</p>
+                <p className="text-xl font-semibold [overflow-wrap:anywhere]">{category.name}</p>
+                <p className={helpClass}>{countLabel(category.postCount)}</p>
               </div>
               <RenameForm category={category} />
               <ConfirmDelete

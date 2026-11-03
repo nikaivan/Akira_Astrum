@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/admin/page-header";
 import { PostEditor } from "@/components/admin/post-editor";
 import { listCategoryOptions } from "@/lib/admin/queries";
 import { requireAdmin } from "@/lib/auth/require-admin";
@@ -14,7 +15,7 @@ export default async function NewPostPage() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-semibold">Nueva entrada</h1>
+      <PageHeader title="Nueva entrada" />
       <PostEditor categories={categories} imageOrigin={process.env.NEXT_PUBLIC_SUPABASE_URL} />
     </div>
   );

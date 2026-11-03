@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CategoryManager } from "@/components/admin/category-manager";
+import { PageHeader } from "@/components/admin/page-header";
 import { listCategoriesWithCounts } from "@/lib/admin/queries";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
@@ -14,7 +15,7 @@ export default async function CategoriesPage() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-semibold">Categorías</h1>
+      <PageHeader title="Categorías" />
       <CategoryManager categories={categories} />
     </div>
   );

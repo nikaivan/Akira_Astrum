@@ -19,7 +19,7 @@ export function RowAction({ action, id, label, ariaLabel }: Props) {
   return (
     <form action={formAction} className="flex flex-col gap-1">
       <input type="hidden" name="id" value={id} />
-      <Button type="submit" variant="outline" className="h-11 px-4" aria-label={ariaLabel} disabled={pending}>
+      <Button type="submit" variant="outline" size="touch" aria-label={ariaLabel} disabled={pending}>
         {label}
       </Button>
       {state && !state.ok ? (

@@ -2,9 +2,8 @@
 
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { useActionState, useState, type ReactNode } from "react";
-import { buttonVariants } from "@/components/ui/button";
 import type { ActionState } from "@/lib/admin/state";
-import { cn } from "@/lib/utils";
+import { destructiveButton, outlineButton } from "./styles";
 
 type Props = {
   action: (previous: ActionState, formData: FormData) => Promise<ActionState>;
@@ -26,15 +25,15 @@ export function ConfirmDelete({ action, fields, triggerAriaLabel, title, descrip
 
   return (
     <AlertDialog.Root open={open} onOpenChange={setOpen}>
-      <AlertDialog.Trigger aria-label={triggerAriaLabel} className={cn(buttonVariants({ variant: "outline" }), "h-11 px-4")}>
+      <AlertDialog.Trigger aria-label={triggerAriaLabel} className={outlineButton}>
         Eliminar
       </AlertDialog.Trigger>
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="fixed inset-0 bg-foreground/40" />
         <AlertDialog.Viewport className="fixed inset-0 grid place-items-center overflow-y-auto p-4">
-          <AlertDialog.Popup className="w-full max-w-md rounded-xl border bg-card p-6 text-card-foreground shadow-lg outline-none">
-            <AlertDialog.Title className="text-xl font-semibold">{title}</AlertDialog.Title>
-            <AlertDialog.Description render={<div />} className="mt-2 text-base text-muted-foreground">
+          <AlertDialog.Popup className="w-full max-w-md rounded-xl border border-t-4 border-t-gold bg-card p-6 text-card-foreground shadow-lg outline-none">
+            <AlertDialog.Title className="text-2xl font-semibold">{title}</AlertDialog.Title>
+            <AlertDialog.Description render={<div />} className="mt-3 text-base text-muted-foreground">
               {description}
             </AlertDialog.Description>
             {state && !state.ok ? (
@@ -47,8 +46,8 @@ export function ConfirmDelete({ action, fields, triggerAriaLabel, title, descrip
                 <input key={name} type="hidden" name={name} value={value} />
               ))}
               <input type="hidden" name="confirm" value="eliminar" />
-              <AlertDialog.Close className={cn(buttonVariants({ variant: "outline" }), "h-11 px-4")}>Cancelar</AlertDialog.Close>
-              <button type="submit" disabled={pending} className={cn(buttonVariants({ variant: "default" }), "h-11 bg-destructive px-4 text-white hover:bg-destructive/90")}>
+              <AlertDialog.Close className={outlineButton}>Cancelar</AlertDialog.Close>
+              <button type="submit" disabled={pending} className={destructiveButton}>
                 Eliminar definitivamente
               </button>
             </form>
