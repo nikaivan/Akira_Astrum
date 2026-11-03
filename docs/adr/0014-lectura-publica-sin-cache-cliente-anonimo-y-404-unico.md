@@ -1,6 +1,6 @@
 # ADR 0014: Lectura pública sin caché: cliente anónimo sin cookies, `force-dynamic` y un único 404
 
-- **Estado:** Propuesto (2026-11-03), pendiente de que lo acepte el humano
+- **Estado:** Aceptado (2026-11-03)
 - **Fecha:** 2026-11-03
 
 ## Contexto

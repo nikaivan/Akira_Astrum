@@ -1,6 +1,6 @@
 # ADR 0013: Markdown público sanitizado: react-markdown sin HTML crudo y lista blanca explícita
 
-- **Estado:** Propuesto (2026-11-03), pendiente de que lo acepte el humano
+- **Estado:** Aceptado (2026-11-03)
 - **Fecha:** 2026-11-03
 
 ## Contexto
