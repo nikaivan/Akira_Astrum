@@ -234,6 +234,32 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** blog público completo y verificado con datos reales. Pendiente declarado: texto alternativo de portada obligatorio y extracto de la entrada destacada (bloque de subida de imágenes), paginación (límite de 50), ISR con revalidación bajo demanda si algún día se quiere, y que el service worker (Fase 3) no cachee estas rutas.
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-03 · Fase 2 · Bloque 3: CRUD de entradas y categorías en el panel
+- **Objetivo de la sesión:** crear, listar, editar, publicar, despublicar y eliminar entradas, y crear, renombrar y eliminar categorías desde el panel, reutilizando sin tocarlos el login y la protección de `/admin`, las políticas RLS, la lógica de slugs y estados y el Markdown sanitizado. Fuera de alcance: subida de imágenes y portada (bloque 4).
+- **Lo que pedí a la IA (resumen):** rutas y componentes del panel con una Server Action por operación; el esquema Zod estricto de cada formulario con sus límites; y la lista de tests por nivel (autorización de cada acción con anónimo y no admin, asignación masiva, validación, transiciones, slugs, eliminación con confirmación, CSRF, invalidación de caché, vista previa con el mismo sanitizado, responsive, teclado y axe). Reglas: tests primero, un commit por ciclo tras mi aprobación, nada contra producción ni con `service_role` en la aplicación.
+- **Lo que generó la IA (en una frase):** `lib/admin/` (esquemas estrictos, servicios sin dependencias de Next, ocho Server Actions con `withAdminAction`, consultas del panel), los componentes y las cuatro páginas del panel, 12 archivos de tests unitarios con un Supabase en memoria que imita las restricciones de la base de datos, un test de integración y un spec e2e.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé el plan, luego los tests (`8910f07`) y después la implementación (`109e5e3`). Rojo: los 12 archivos unitarios fallaban por falta de los módulos. Verde: 1597 unitarios (305 nuevos), la integración completa y 162 e2e (36 nuevos), que ejecuté yo contra el proyecto de test.
+- **Quién ejecutó qué:** la IA ejecutó los unitarios, `tsc`, el lint, `next build` (en una copia) y los 20 e2e que no necesitan datos; yo ejecuté la integración y los e2e con datos, porque la IA no llega a Supabase. El estilo se comprobó con una página de vista previa temporal con datos de ejemplo y capturas en escritorio y móvil, en una copia aislada que no entró en el repositorio.
+- **Decisiones que tomé yo (cuatro preguntas del plan):** el extracto se deriva del contenido y no hay campo nuevo; los guardados a medias se resuelven por compensación y no con una función SQL; eliminar una categoría con entradas está permitido con confirmación y conserva las entradas; el slug de una entrada publicada queda bloqueado (regla nueva). Concedí permisos para modificar tests ya aprobados: una línea de tipos en `messages.test.ts`, y en `admin.spec.ts` el `h1`, la espera al cierre del diálogo y la sesión reutilizada.
+- **Errores que detectaron los tests (primer e2e con datos: 12 fallos, 5 causas):**
+  - El `h1` «Entradas» chocaba con un test aprobado de la Fase 1 que espera «Panel de administración». Mantuve el de la Fase 1 y cambié mi página y mi spec.
+  - El aviso de errores del editor no contenía el mensaje del campo (por ejemplo, el slug repetido) que mi propio test esperaba en el `role="alert"`. Ahora el resumen lista los mensajes de cada campo.
+  - axe encontró `label-content-name-mismatch` en el enlace «Ver en el blog», cuyo nombre accesible no contenía el texto visible.
+  - Los tests de eliminar pasaban antes de tiempo: con el diálogo abierto el resto de la página sale del árbol de accesibilidad y el recuento de filas era 0 de inmediato, antes de que se borrara nada.
+  - Cada test iniciaba sesión y superó el límite de inicios de sesión de Supabase Auth por IP: fallaron solo los últimos. Se usa una sesión de admin por trabajador, con un usuario propio (el test de cerrar sesión revoca todas las sesiones de `users.admin`).
+- **Errores de la IA (no los detectó un test, salvo donde se indica):**
+  - Un predicado de tipos inválido en uno de sus tests hacía fallar `tsc` y, por tanto, `next build`, aunque los 1597 unitarios pasaban; se vio al ejecutar `tsc` y se verificó en una copia antes de pedir permiso para corregirlo.
+  - Su test de arquitectura escribía el nombre de la clave de servicio y rompía un test de la Fase 1 que limita en qué archivos puede aparecer; un comentario suyo en la vista previa tropezó con su propio test de arquitectura (nombraba las librerías de Markdown).
+  - Un literal `{ __proto__: "x" }` no crea la clave, así que su test no probaba lo que decía; lo vio antes de enseñármelo.
+  - En el Paso 4, su refactor quitó los `cn()` de tres botones y perdieron borde y tamaño: ningún test lo detecta, lo vieron las capturas.
+- **Lo que confirmaron los tests de seguridad:** el CSRF funciona (el servidor registró «does not match `origin` header … Aborting the action» con el `Origin` falso); anónimo, no admin y sin perfil no modifican nada ni con una llamada directa; y dos publicaciones simultáneas no se pisan.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0015](adr/0015-mutaciones-del-panel-esquemas-estrictos-withadminaction-y-compensacion.md), aceptado por mí el 2026-11-03.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna. Se usan `alert-dialog` de `@base-ui/react`, ya instalado; las pestañas del editor se implementaron a mano con el patrón ARIA.
+- **Desviación respecto al plan (si la hay) y motivo:** el panel vive en `app/admin/` y no en un grupo `(admin)` (`PLAN.md` §7), porque el `matcher` del proxy y la Fase 1 ya lo usan; ver la tabla "Desviaciones respecto al plan".
+- **Paso 4 (refactor y estilo):** los ayudantes de resultado repetidos entre los dos servicios (`fail`, `invalid`, `guarded`), el tipo `Parsed` y los códigos de Postgres pasan a `lib/admin/result.ts`; las ocho acciones comparten `settleAndRevalidate`. El editor se divide en `EditorTabs` y `CategoryPicker`, y los estilos repetidos pasan a `components/admin/styles.ts`. Estilo de `docs/design.md`: títulos serif con un filo dorado decorativo, tarjetas, estado con icono y texto en una pastilla, diálogo de confirmación y objetivos de 44 px.
+- **Resultado:** CRUD del panel completo y verificado con datos reales. Pendiente declarado: la portada y su texto alternativo, y el borrado de la imagen al eliminar una entrada (bloque 4), la paginación (límite de 50), el registro de eventos del admin y la protección contra la edición simultánea del contenido (Fase 3).
+- **Tiempo aproximado:** no medido.
+
 ---
 
 ## Dependencias añadidas (resumen)
@@ -284,6 +310,10 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-03 | Las portadas llevan `alt=""` y la entrada destacada no muestra extracto | `posts` no tiene columna de texto alternativo ni los datos de las tarjetas llevan extracto; añadirlos cambia el esquema y tests ya aprobados | Se resuelve en el bloque de subida de imágenes (`cover_alt` obligatorio) |
 | 2026-11-03 | El e2e comprueba que el servidor está listo en `/login` y no en `/` | La portada lee la base de datos y sin Supabase no responde 200 | Ninguno con el proyecto de test conectado |
 | 2026-11-02 | El `smoke` e2e usa el puerto 3100 y `npm run test:e2e` exige `.env.test.local` | Para que los e2e no reutilicen un servidor levantado con `.env.local` (producción) | Hay que parar el `npm run dev` antes de ejecutar los e2e |
+| 2026-11-03 | El panel vive en `app/admin/` y no en un grupo `(admin)` | El `matcher` del proxy y la Fase 1 ya usan `/admin`; `PLAN.md` §7 es orientativo y no se modifica | Ninguno funcional |
+| 2026-11-03 | El `h1` de `/admin` es «Panel de administración» y no «Entradas» | Un test aprobado de la Fase 1 lo espera; prefiero no tocarlo | Ninguno; mi página y mi spec se ajustaron |
+| 2026-11-03 | Sin campo de extracto en el formulario y sin paginación del listado (máximo 50) | `posts` no tiene esa columna y el plan del bloque lo decidió así; el blog deriva el extracto del contenido | Ninguno; el borrado de la portada de Storage al eliminar una entrada queda para el bloque 4 |
+| 2026-11-03 | Los e2e del panel usan una sesión de admin por trabajador, con un usuario propio | Supabase Auth limita los inicios de sesión por IP y el test de cerrar sesión revoca las de `users.admin` | Ninguno en producción |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -304,6 +334,9 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Un fallo que nadie sabe explicar | Pedir un diagnóstico que imprima datos (estado HTTP, tipo, tamaño, momento) en vez de adivinar, y reproducirlo antes en un navegador | Funcionó: se descartaron tres hipótesis y se encontró el `srcset` con `naturalWidth` | Comprobar la medida del test antes de culpar a la aplicación |
 | Verificación incompleta | Ejecutar `next build` y no solo `tsc`, los tests y el lint | Destapó un fallo del bloque 4 que habría roto el despliegue (`/admin`) | Incluir `next build` en cada cierre de bloque, y proponerlo en la CI |
 | Probar sin tus datos | Montar una página de vista previa temporal con datos de ejemplo y medirla en un navegador real | Funcionó para el estilo: axe, desbordamiento, 44 px y capturas antes de pedirte los e2e | Borrar siempre los archivos temporales y la caché `.next` |
+| Decisiones abiertas del plan | Preguntar, antes de implementar, las cuatro cuestiones que el código y `PLAN.md` no resolvían (extracto, atomicidad, borrar categorías con entradas, slug publicado) | Funcionó: una de las respuestas (slug bloqueado) añadió una regla nueva y sus tests desde el principio | Preguntar siempre lo que cambia el diseño, con una recomendación, y no decidirlo en silencio |
+| Muchos fallos de golpe | Pegar la salida completa de los e2e (12 fallos) y pedir agruparlos por causa antes de arreglar nada | Funcionó: eran 5 causas, dos de ellas errores de mis tests y no de la aplicación | Diagnosticar por causas y pedir permiso para tocar tests aprobados con la lista exacta de líneas |
+| Estilo sin ver la pantalla | Montar las pantallas del panel con datos de ejemplo en una copia aislada y sacar capturas en escritorio y móvil | Destapó un fallo del refactor que ningún test detectaba (botones sin `cn`) | Mirar siempre las capturas antes de dar el estilo por bueno |
 
 ## Resumen final para la memoria (se completa al terminar)
 

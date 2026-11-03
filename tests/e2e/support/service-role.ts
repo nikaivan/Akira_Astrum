@@ -177,3 +177,43 @@ export async function deleteE2EBlog(blog: E2EBlog): Promise<void> {
   await db.from("categories").delete().like("slug", `${blog.prefix}%`);
   await db.storage.from(BUCKET).remove([blog.coverName]);
 }
+
+// ── Datos creados desde el panel (solo contra el proyecto de test; se borran al terminar) ──
+
+const E2E_PREFIX = "itest-e2e-";
+const assertE2EPrefix = (prefix: string) => {
+  if (!prefix.startsWith(E2E_PREFIX)) throw new Error("Solo se tocan datos con prefijo itest-e2e-.");
+};
+
+/** Prefijo único por test para las entradas y categorías que crea la prueba desde el panel. */
+export const newE2EPrefix = () => `${E2E_PREFIX}${randomBytes(4).toString("hex")}`;
+
+/** Borra solo las entradas y categorías cuyo slug empieza por el prefijo. */
+export async function deleteE2EByPrefix(prefix: string): Promise<void> {
+  assertE2EPrefix(prefix);
+  const db = serviceClient();
+  await db.from("posts").delete().like("slug", `${prefix}%`);
+  await db.from("categories").delete().like("slug", `${prefix}%`);
+}
+
+export async function countE2E(table: "posts" | "categories", prefix: string): Promise<number> {
+  assertE2EPrefix(prefix);
+  const { count, error } = await serviceClient().from(table).select("id", { count: "exact", head: true }).like("slug", `${prefix}%`);
+  if (error) throw new Error(`No se pudo contar los datos de prueba: ${error.message}`);
+  return count ?? 0;
+}
+
+/** Crea un borrador directamente (sin pasar por el panel) para preparar un choque de slug. */
+export async function createE2EDraft(adminId: string, slug: string, title: string): Promise<string> {
+  assertE2EPrefix(slug);
+  const { data, error } = await serviceClient().from("posts").insert({ title, slug, author_id: adminId }).select("id").single();
+  if (error || !data) throw new Error(`No se pudo crear el borrador de prueba: ${error?.message}`);
+  return data.id as string;
+}
+
+export async function findE2ECategory(prefix: string): Promise<{ id: string; name: string; slug: string } | null> {
+  assertE2EPrefix(prefix);
+  const { data, error } = await serviceClient().from("categories").select("id, name, slug").like("slug", `${prefix}%`).limit(1);
+  if (error) throw new Error(`No se pudo leer la categoría de prueba: ${error.message}`);
+  return (data?.[0] as { id: string; name: string; slug: string } | undefined) ?? null;
+}
