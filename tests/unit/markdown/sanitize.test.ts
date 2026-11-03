@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { problemsIn, render, tagsOf } from "./support";
 
+const attributeNames = (html: string) => tagsOf(html).flatMap((tag) => [...tag.attributes.keys()]);
+
 // Payloads reales de XSS, como Markdown y como HTML crudo, con mayúsculas, entidades y codificaciones.
 const PAYLOADS: [string, string][] = [
   ["script", "<script>alert(1)</script>"],
@@ -79,9 +81,8 @@ describe("sanitizado: la salida solo contiene etiquetas y atributos de la lista 
       const html = render(wrap(payload));
       expect(problemsIn(html)).toEqual([]);
       expect(html).not.toMatch(/<script|<iframe|<object|<embed|<svg|<style|<form|<meta|<base|<link|<input|<body|<math/i);
-      expect(html).not.toMatch(/\son[a-z]+\s*=/i);
-      expect(html).not.toMatch(/\sstyle\s*=/i);
-      expect(html).not.toMatch(/\s(id|name)\s*=/i);
+      // Solo importan los atributos de etiquetas reales: el texto escapado (p. ej. «onclick=») es inofensivo.
+      expect(attributeNames(html).filter((name) => /^on/i.test(name) || ["style", "id", "name"].includes(name.toLowerCase()))).toEqual([]);
     });
   });
 

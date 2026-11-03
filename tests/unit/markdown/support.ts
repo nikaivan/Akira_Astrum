@@ -46,7 +46,7 @@ export function tagsOf(html: string): Tag[] {
 }
 
 export function anchors(html: string) {
-  return [...html.matchAll(/<a\s([^>]*)>(.*?)<\/a>/gs)].map((match) => {
+  return [...html.matchAll(/<a\s([^>]*)>([\s\S]*?)<\/a>/g)].map((match) => {
     const attributes = new Map([...match[1].matchAll(/([^\s=]+)="([^"]*)"/g)].map((attr) => [attr[1], attr[2]]));
     return { href: attributes.get("href"), target: attributes.get("target"), rel: attributes.get("rel"), text: match[2] };
   });

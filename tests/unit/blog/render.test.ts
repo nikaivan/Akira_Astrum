@@ -6,6 +6,7 @@ import NotFound from "@/app/not-found";
 import { PostArticle } from "@/components/post-article";
 import { PostCard } from "@/components/post-card";
 import { pageTitle, postMetadata } from "@/lib/blog/metadata";
+import { tagsOf } from "../markdown/support";
 import { cardFixture, detailFixture, ORIGIN } from "./support";
 
 const card = (post = cardFixture(), headingLevel?: 2 | 3) => renderToStaticMarkup(createElement(PostCard, { post, headingLevel }));
@@ -14,7 +15,8 @@ const article = (post = detailFixture()) => renderToStaticMarkup(createElement(P
 const PAYLOADS = ["<script>alert(1)</script>", '<img src=x onerror="alert(1)">', '"><svg onload=alert(1)>', "javascript:alert(1)", "<iframe src=//evil.test></iframe>"];
 const inert = (html: string) => {
   expect(html).not.toMatch(/<script|<iframe|<svg[^>]*onload|<img[^>]*onerror/i);
-  expect(html).not.toMatch(/\sonerror\s*=|\sonload\s*=/i);
+  // Solo importan los atributos de etiquetas reales: el texto escapado (p. ej. «onerror=») es inofensivo.
+  expect(tagsOf(html).flatMap((tag) => [...tag.attributes.keys()]).filter((name) => /^on/i.test(name))).toEqual([]);
 };
 
 describe("PostCard", () => {
@@ -23,7 +25,7 @@ describe("PostCard", () => {
     expect(html).toMatch(/<h2[^>]*>\s*<a[^>]*href="\/blog\/mi-entrada"[^>]*>Mi entrada<\/a>\s*<\/h2>/);
     expect(html).toMatch(/<a[^>]*href="\/categorias\/astrologia"[^>]*>Astrología<\/a>/);
     expect(html).toContain("2 de noviembre de 2026");
-    expect(html).toMatch(/<time[^>]*datetime="2026-11-02T10:00:00Z"/);
+    expect(html).toMatch(/<time[^>]*datetime="2026-11-02T10:00:00Z"/i);
     expect(html).toContain("3 min de lectura");
     expect(html).toMatch(/<img[^>]*alt=""/);
   });
@@ -44,7 +46,7 @@ describe("PostCard", () => {
   it.each(PAYLOADS)("el título y la categoría con el payload %j salen como texto", (payload) => {
     const html = card(cardFixture({ title: payload, categories: [{ name: payload, slug: "astrologia" }] }));
     inert(html);
-    expect(html).toContain("&lt;");
+    if (payload.includes("<")) expect(html).toContain("&lt;");
   });
 
   it("un slug de la base de datos no puede salir de la ruta del blog", () => {
@@ -61,7 +63,7 @@ describe("PostArticle", () => {
     expect(html).toContain("2 de noviembre de 2026");
     expect(html).toContain("3 min de lectura");
     expect(html).toMatch(/<article/);
-    expect(html).toMatch(/<h2>Subtítulo<\/h2>/); // el contenido baja un nivel
+    expect(html).toMatch(/<h3>Subtítulo<\/h3>/); // el contenido baja un nivel (## → h3)
     expect(html).toMatch(/<strong>negrita<\/strong>/);
     expect(html).toMatch(/<img[^>]*alt=""/);
   });

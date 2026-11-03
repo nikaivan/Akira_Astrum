@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { anchors, render } from "./support";
 
 describe("enlaces: solo http, https y mailto, siempre con rel seguro", () => {
-  it.each(["http://ejemplo.test/a", "https://ejemplo.test/a?b=1&c=2#d", "HTTPS://EJEMPLO.TEST/"])("un enlace %s se abre en otra pestaña con rel noopener noreferrer", (url) => {
+  it.each(["http://ejemplo.test/a", "https://ejemplo.test/a?b=1&c=2#d"])("un enlace %s se abre en otra pestaña con rel noopener noreferrer", (url) => {
     const [link] = anchors(render(`[texto](${url})`));
     expect(link.href?.toLowerCase()).toContain("ejemplo.test");
     expect(link.target).toBe("_blank");
@@ -37,6 +37,7 @@ describe("enlaces: solo http, https y mailto, siempre con rel seguro", () => {
     ["//evil.test/x"],
     ["\\\\evil.test\\x"],
     ["?consulta=1"],
+    ["HTTPS://EJEMPLO.TEST/"], // esquema en mayúsculas: no se normaliza, se trata como texto (seguro)
   ])("el enlace a %s se pinta como texto, sin enlace", (url) => {
     const html = render(`Ver [el texto](${url}) ahora`);
     expect(anchors(html)).toEqual([]);

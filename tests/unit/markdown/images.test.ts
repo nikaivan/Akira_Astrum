@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { IMAGE_URL, ORIGIN, render } from "./support";
+import { IMAGE_URL, ORIGIN, render, tagsOf } from "./support";
 
 const imgs = (html: string) => html.match(/<img\b/g)?.length ?? 0;
 const HOST = "abcdefghijklmnopqrst.supabase.co";
@@ -22,7 +22,8 @@ describe("imágenes del Markdown: solo las del Storage público del proyecto", (
   it("el texto alternativo sale escapado", () => {
     const html = render(`![" onerror="alert(1)<script>](${IMAGE_URL})`, ORIGIN);
     expect(html).not.toMatch(/<script/);
-    expect(html).not.toMatch(/\sonerror=/);
+    // El texto «onerror=» queda dentro del valor escapado del alt; lo que no puede existir es ese atributo.
+    expect(tagsOf(html).flatMap((tag) => [...tag.attributes.keys()]).filter((name) => /^on/i.test(name))).toEqual([]);
   });
 
   it.each([
