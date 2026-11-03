@@ -23,7 +23,7 @@ El archivo se carga solo desde `vitest.integration.config.mts`. Vite **no** carg
 1. En *Authentication → Sign In / Providers*, desactiva el registro de nuevos usuarios. Un test lo comprueba.
 2. En el editor SQL del proyecto de test, pega y ejecuta, en este orden:
    1. `support/test-project-helper.sql` (solo para test; crea `test_catalog_report()`).
-   2. Las tres migraciones de `supabase/migrations/`, por orden de nombre.
+   2. Las cuatro migraciones de `supabase/migrations/`, por orden de nombre (la cuarta, `20261104000000_cover_alt.sql`, añade `posts.cover_alt` para el texto alternativo de la portada).
    Antes de ejecutar, comprueba en pantalla que el proyecto es el de test.
 3. Crea el perfil de un administrador real solo si lo necesitas fuera de los tests; los tests crean los suyos.
 

@@ -107,10 +107,11 @@ describe("A05, A09 y A10 en el código del panel", () => {
 });
 
 describe("CSRF y configuración de las Server Actions", () => {
-  it("next.config.ts no relaja el control de origen de Next ni toca el tamaño de las acciones", () => {
+  it("next.config.ts no relaja el control de origen de Next; solo ajusta el tamaño de las acciones (bloque 4: portada de 2 MB)", () => {
     const config = SOURCES["/next.config.ts"];
     expect(config).toBeDefined();
-    expect(config).not.toMatch(/allowedOrigins|serverActions|bodySizeLimit/);
+    expect(config).not.toMatch(/allowedOrigins/);
+    expect(config).toMatch(/bodySizeLimit\s*:\s*["']3mb["']/);
   });
 });
 

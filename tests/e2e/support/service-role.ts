@@ -192,7 +192,11 @@ export const newE2EPrefix = () => `${E2E_PREFIX}${randomBytes(4).toString("hex")
 export async function deleteE2EByPrefix(prefix: string): Promise<void> {
   assertE2EPrefix(prefix);
   const db = serviceClient();
+  // Las portadas subidas desde el panel se borran con sus entradas (el borrado de la entrada ya las quita, esto cubre los fallos).
+  const { data: covers } = await db.from("posts").select("cover_image_path").like("slug", `${prefix}%`).not("cover_image_path", "is", null);
+  const names = (covers ?? []).map((row) => String(row.cover_image_path));
   await db.from("posts").delete().like("slug", `${prefix}%`);
+  if (names.length > 0) await db.storage.from(BUCKET).remove(names);
   await db.from("categories").delete().like("slug", `${prefix}%`);
 }
 
@@ -216,4 +220,46 @@ export async function findE2ECategory(prefix: string): Promise<{ id: string; nam
   const { data, error } = await serviceClient().from("categories").select("id, name, slug").like("slug", `${prefix}%`).limit(1);
   if (error) throw new Error(`No se pudo leer la categoría de prueba: ${error.message}`);
   return (data?.[0] as { id: string; name: string; slug: string } | undefined) ?? null;
+}
+
+// ── Portadas subidas desde el panel (solo contra el proyecto de test; se borran al terminar) ──
+
+type StoredObject = { name: string; metadata?: { size?: number } | null };
+
+/** Ruta de la portada que guarda la entrada, o null si no tiene. */
+export async function getE2ECoverPath(slug: string): Promise<string | null> {
+  assertE2EPrefix(slug);
+  const { data, error } = await serviceClient().from("posts").select("cover_image_path").eq("slug", slug).maybeSingle();
+  if (error) throw new Error(`No se pudo leer la portada de la entrada de prueba: ${error.message}`);
+  return (data?.cover_image_path as string | null | undefined) ?? null;
+}
+
+export async function getE2ECoverAlt(slug: string): Promise<string | null> {
+  assertE2EPrefix(slug);
+  const { data, error } = await serviceClient().from("posts").select("cover_alt").eq("slug", slug).maybeSingle();
+  if (error) throw new Error(`No se pudo leer el texto alternativo de la entrada de prueba: ${error.message}`);
+  return (data?.cover_alt as string | null | undefined) ?? null;
+}
+
+/** URL pública del objeto, tal y como la sirve Storage (sin pasar por next/image). */
+export function e2eCoverUrl(path: string): string {
+  const { url } = assertTestEnvironment(process.env);
+  return `${url}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+/** ¿Se sirve el objeto como imagen ahora mismo? (con un parámetro para saltarse cualquier caché) */
+export async function e2eObjectServed(path: string): Promise<boolean> {
+  const response = await fetch(`${e2eCoverUrl(path)}?t=${randomBytes(4).toString("hex")}`);
+  return response.status === 200 && (response.headers.get("content-type") ?? "").startsWith("image/");
+}
+
+/** Nombres de los objetos del bucket con ese tamaño exacto en bytes: así un test reconoce SU archivo entre los de otros trabajadores. */
+export async function findE2EObjectsBySize(size: number): Promise<string[]> {
+  const { data, error } = await serviceClient().storage.from(BUCKET).list(undefined, { limit: 1000 });
+  if (error) throw new Error(`No se pudo listar el bucket de prueba: ${error.message}`);
+  return ((data ?? []) as StoredObject[]).filter((object) => object.metadata?.size === size).map((object) => object.name);
+}
+
+export async function removeE2EObjects(names: string[]): Promise<void> {
+  if (names.length > 0) await serviceClient().storage.from(BUCKET).remove(names);
 }

@@ -103,8 +103,8 @@ describe("PostEditor: formulario", () => {
     expect(blank).toContain(`value="${CAT_A}"`);
   });
 
-  it("no tiene ningún campo para lo que fija el servidor ni para la portada", () => {
-    for (const forbidden of ["author_id", "created_at", "updated_at", "published_at", "status", "cover", "portada"]) {
+  it("no tiene ningún campo para lo que fija el servidor ni para rutas de portada (la portada se envía como archivo)", () => {
+    for (const forbidden of ["author_id", "created_at", "updated_at", "published_at", "status", "cover_image_path", "cover_alt", "coverPath", "cover_url"]) {
       expect(blank).not.toMatch(new RegExp(`name="[^"]*${forbidden}`, "i"));
     }
   });
