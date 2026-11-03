@@ -1,3 +1,4 @@
+import { AdminNav } from "@/components/admin/admin-nav";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/lib/auth/actions";
 import { requireAdmin } from "@/lib/auth/require-admin";
@@ -15,7 +16,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           </Button>
         </form>
       </header>
-      <main className="flex-1 px-4 py-6">{children}</main>
+      <AdminNav />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
     </div>
   );
 }

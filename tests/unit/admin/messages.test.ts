@@ -17,7 +17,7 @@ describe("mensajes del panel", () => {
   });
 
   it("ningún mensaje contiene términos técnicos de la base de datos", () => {
-    const texts = Object.values(messages).filter((value): value is string => typeof value === "string");
+    const texts = Object.values(messages).filter((value) => typeof value === "string") as string[];
     expect(texts.length).toBeGreaterThanOrEqual(10);
     for (const text of texts) expect(text).not.toMatch(LEAK_PATTERN);
   });
