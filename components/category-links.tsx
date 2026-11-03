@@ -6,7 +6,7 @@ import type { CategoryRef } from "@/lib/blog/queries";
 export function CategoryLinks({ categories }: { categories: CategoryRef[] }) {
   if (categories.length === 0) return null;
   return (
-    <ul className="flex flex-wrap gap-x-1">
+    <ul className="-ml-2 flex flex-wrap gap-x-1">
       {categories.map((category) => (
         <li key={category.slug}>
           <Link href={`/categorias/${category.slug}`} className={textLinkClass}>

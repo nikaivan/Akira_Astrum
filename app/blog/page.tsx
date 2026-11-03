@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PostCard } from "@/components/post-card";
+import { PostGrid } from "@/components/post-grid";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { pageTitle } from "@/lib/blog/metadata";
@@ -17,24 +17,25 @@ export const metadata: Metadata = {
 const MAX_ENTRIES = 50;
 
 export default async function BlogPage() {
-  const result = await listPublishedPosts(createPublicClient(), { limit: MAX_ENTRIES, origin: process.env.NEXT_PUBLIC_SUPABASE_URL });
+  const result = await listPublishedPosts(createPublicClient(), {
+    limit: MAX_ENTRIES,
+    origin: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  });
   if (result.status !== "ok") throw new Error("Lectura no disponible");
 
   return (
     <>
       <SiteHeader current="blog" />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-10">
-        <h1 className="text-4xl font-semibold sm:text-5xl">Blog</h1>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10">
+        <h1 className="font-heading text-4xl font-semibold sm:text-5xl">
+          Blog
+        </h1>
         {result.data.length === 0 ? (
-          <p className="text-lg text-muted-foreground">Todavía no hay entradas.</p>
+          <p className="text-lg text-muted-foreground">
+            Todavía no hay entradas.
+          </p>
         ) : (
-          <ul className="flex flex-col gap-8">
-            {result.data.map((post) => (
-              <li key={post.id}>
-                <PostCard post={post} />
-              </li>
-            ))}
-          </ul>
+          <PostGrid posts={result.data} />
         )}
       </main>
       <SiteFooter />
