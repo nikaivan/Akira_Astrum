@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import type { APIResponse, Locator, Page, Request } from "@playwright/test";
+import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { expect, test } from "./support/fixtures";
 import { brokenPng, MIB, pngOfSize, REAL_JPEG, REAL_PNG, svgOfSize } from "./support/cover-images";
 import {
@@ -74,33 +74,69 @@ async function publishWithCover(page: Page, base: string, alt: string, file = pn
   return slug;
 }
 
-/** Captura la petición real de la Server Action que crea una entrada (con su archivo) para poder reenviarla modificada. */
-async function captureCreateRequest(page: Page, base: string, label: string, file: Buffer) {
+/** Partes del FormData que el navegador envía a una Server Action (los archivos, en base64). */
+type Captured = {
+  url: string;
+  headers: Record<string, string>;
+  entries: Array<{ name: string; text?: string; file?: { name: string; type: string; base64: string } }>;
+};
+
+/**
+ * Playwright no expone el cuerpo de una petición con FormData (`postDataBuffer()` es nulo), así que se envuelve `fetch` en la
+ * página y se guardan las partes de cada Server Action. Debe instalarse ANTES de navegar a la página que envía el formulario.
+ */
+async function installCapture(page: Page) {
+  await page.addInitScript(() => {
+    const store: unknown[] = [];
+    (window as unknown as { __actions: unknown[] }).__actions = store;
+    const original = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const headers = new Headers(init?.headers);
+      if (init?.method === "POST" && headers.has("next-action") && init.body instanceof FormData) {
+        const entries: Captured["entries"] = [];
+        for (const [name, value] of init.body.entries()) {
+          if (typeof value === "string") entries.push({ name, text: value });
+          else {
+            const bytes = new Uint8Array(await value.arrayBuffer());
+            let binary = "";
+            for (const byte of bytes) binary += String.fromCharCode(byte);
+            entries.push({ name, file: { name: value.name, type: value.type, base64: btoa(binary) } });
+          }
+        }
+        store.push({ url: typeof input === "string" ? input : input instanceof URL ? input.href : input.url, headers: Object.fromEntries(headers), entries });
+      }
+      return original(input, init);
+    };
+  });
+}
+
+/** Crea una entrada con portada desde el panel y devuelve la petición de la Server Action tal y como la envió el navegador. */
+async function captureCreateRequest(page: Page, base: string, label: string, file: Buffer): Promise<{ captured: Captured; slug: string }> {
+  await installCapture(page);
   const slug = `${base}-${label}`;
   await newPost(page, { title: `${base} ${label}`, slug });
   await pick(page, png(file));
   await page.getByLabel("Texto alternativo de la portada").fill("Texto de prueba");
-  const captured = page.waitForRequest((request) => request.method() === "POST" && "next-action" in request.headers());
   await page.getByRole("button", { name: "Guardar borrador", exact: true }).click();
-  const request = await captured;
+  await page.waitForFunction(() => ((window as unknown as { __actions?: unknown[] }).__actions?.length ?? 0) > 0);
+  const captured = await page.evaluate(() => (window as unknown as { __actions: Captured[] }).__actions.at(-1) as Captured);
   await expect(page).toHaveURL((url) => url.pathname === "/admin");
-  return { request, slug };
+  return { captured, slug };
 }
 
-/** Reenvía una petición capturada cambiando el archivo y el slug (con la misma longitud, para no alterar el resto del cuerpo). */
-async function replay(page: Page, original: Request, from: { file: Buffer; slug: string }, to: { file: Buffer; slug: string }): Promise<APIResponse> {
-  const body = original.postDataBuffer();
-  if (!body) throw new Error("La petición capturada no tiene cuerpo.");
-  const start = body.indexOf(from.file);
-  if (start < 0) throw new Error("No se encontró el archivo en el cuerpo capturado.");
-  const swapped = Buffer.concat([body.subarray(0, start), to.file, body.subarray(start + from.file.length)]);
-  const data = Buffer.from(swapped.toString("latin1").replaceAll(from.slug, to.slug), "latin1");
-  const headers = original.headers();
-  return page.context().request.post(original.url(), {
-    headers: { "content-type": headers["content-type"], "next-action": headers["next-action"], accept: headers.accept ?? "text/x-component" },
-    data,
-    failOnStatusCode: false,
-  });
+/** Reenvía la petición capturada con otro contexto (otras cookies) y, si se pide, con otro archivo y otro slug. */
+function replay(request: APIRequestContext, captured: Captured, changes: { file?: Buffer; slug?: string } = {}) {
+  const multipart: Record<string, string | { name: string; mimeType: string; buffer: Buffer }> = {};
+  for (const entry of captured.entries) {
+    if (entry.file) {
+      const buffer = entry.name.endsWith("_cover") && changes.file ? changes.file : Buffer.from(entry.file.base64, "base64");
+      multipart[entry.name] = { name: entry.file.name || "portada.png", mimeType: entry.file.type || "image/png", buffer };
+    } else {
+      multipart[entry.name] = entry.name.endsWith("_slug") && changes.slug ? changes.slug : (entry.text ?? "");
+    }
+  }
+  const headers = Object.fromEntries(Object.entries(captured.headers).filter(([name]) => !["content-type", "content-length"].includes(name.toLowerCase())));
+  return request.post(captured.url, { headers, multipart, failOnStatusCode: false });
 }
 
 test.describe("criterio de hecho de la Fase 2: portada de punta a punta", () => {
@@ -224,17 +260,20 @@ test.describe("lo que no se puede subir", () => {
 
   test("peticiones forjadas: ni el servidor ni el límite de Next dejan pasar un archivo de más de 2 MB", async ({ page }) => {
     const base = prefix();
-    const small = pngOfSize(10_010);
     await asAdmin(page);
-    const { request, slug } = await captureCreateRequest(page, base, "original", small);
+    const { captured } = await captureCreateRequest(page, base, "original", pngOfSize(10_010));
     expect(await countE2E("posts", base)).toBe(1);
 
+    // Control positivo: el reenvío funciona de verdad (un archivo válido con otro slug SÍ crea la entrada), así que los rechazos de abajo significan algo.
+    await replay(page.context().request, captured, { file: pngOfSize(10_011), slug: `${base}-control` });
+    expect(await countE2E("posts", base)).toBe(2);
+    expect(await findE2EObjectsBySize(10_011)).toHaveLength(1);
+
     for (const [label, size] of [["medio", 2 * MIB + 500_000], ["enorme", 4 * MIB]] as const) {
-      const forged = pngOfSize(size);
-      await replay(page, request, { file: small, slug }, { file: forged, slug: `${base}-${label.padEnd(8, "x")}`.slice(0, slug.length) });
+      await replay(page.context().request, captured, { file: pngOfSize(size), slug: `${base}-${label}` });
       expect(await findE2EObjectsBySize(size), label).toEqual([]);
     }
-    expect(await countE2E("posts", base)).toBe(1); // solo la entrada original
+    expect(await countE2E("posts", base)).toBe(2); // solo la original y la del control
   });
 });
 
@@ -334,26 +373,26 @@ test.describe("reemplazar, quitar y eliminar borran el archivo", () => {
 test.describe("seguridad", () => {
   test("A01: la acción de subida capturada y reenviada con la sesión de un usuario sin rol no sube nada", async ({ page, browser, users }) => {
     const base = prefix();
-    const original = pngOfSize(10_004);
     await asAdmin(page);
-    const { request, slug } = await captureCreateRequest(page, base, "admin", original);
+    const { captured } = await captureCreateRequest(page, base, "admin", pngOfSize(10_004));
     expect(await countE2E("posts", base)).toBe(1);
     expect(await findE2EObjectsBySize(10_004)).toHaveLength(1);
+
+    // Control positivo: con la sesión del admin el mismo reenvío SÍ crea la entrada y sube el archivo.
+    await replay(page.context().request, captured, { file: pngOfSize(10_005), slug: `${base}-control` });
+    expect(await countE2E("posts", base)).toBe(2);
+    expect(await findE2EObjectsBySize(10_005)).toHaveLength(1);
 
     const baseURL = test.info().project.use.baseURL;
     const intruder = await browser.newContext({ baseURL });
     try {
       await addSessionCookies(intruder, users.user.email, users.user.password);
-      const body = request.postDataBuffer();
-      if (!body) throw new Error("Sin cuerpo");
-      const headers = request.headers();
-      const forged = Buffer.from(body.toString("latin1").replaceAll(slug, `${base}-intruso`.slice(0, slug.length).padEnd(slug.length, "x")), "latin1");
-      await intruder.request.post(request.url(), { headers: { "content-type": headers["content-type"], "next-action": headers["next-action"], accept: headers.accept ?? "text/x-component" }, data: forged, failOnStatusCode: false });
+      await replay(intruder.request, captured, { file: pngOfSize(10_006), slug: `${base}-intruso` });
     } finally {
       await intruder.close();
     }
-    expect(await countE2E("posts", base)).toBe(1);
-    expect(await findE2EObjectsBySize(10_004)).toHaveLength(1); // solo la del admin
+    expect(await countE2E("posts", base)).toBe(2); // ni la entrada del intruso
+    expect(await findE2EObjectsBySize(10_006)).toEqual([]); // ni su archivo
   });
 
   test("next/image no sirve imágenes de otros hosts, otros proyectos, otros buckets ni con consulta", async ({ request, blog }) => {

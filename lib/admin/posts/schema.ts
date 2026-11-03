@@ -67,8 +67,9 @@ const fields = (intents: readonly [string, ...string[]]) => ({
     .default([])
     .refine((ids) => new Set(ids).size === ids.length),
   intent: z.enum(intents),
-  // Un campo de archivo sin selección llega como un archivo de 0 bytes y sin nombre: equivale a no enviar nada.
-  cover: z.preprocess((value) => (value instanceof File && value.name === "" && value.size === 0 ? undefined : value), z.instanceof(File).optional()),
+  // Un campo de archivo sin selección llega como un archivo de 0 bytes y SIN nombre (en Next, con `name` indefinido; en un
+  // navegador, vacío): equivale a no enviar nada. Un archivo vacío con nombre sí se rechaza más adelante como «vacío».
+  cover: z.preprocess((value) => (value instanceof File && value.size === 0 && !value.name ? undefined : value), z.instanceof(File).optional()),
   coverAlt: z
     .string()
     .trim()

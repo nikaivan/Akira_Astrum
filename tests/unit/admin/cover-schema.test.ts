@@ -79,6 +79,15 @@ describe("portada: el archivo", () => {
     expect(result.success && result.data.cover).toBeUndefined();
   });
 
+  it("en el servidor de Next el campo vacío llega como un archivo de 0 bytes con el nombre indefinido: también es «sin archivo»", () => {
+    const empty = Object.defineProperty(new File([], "x"), "name", { value: undefined });
+    const result = parsePostForm(valid({ cover: empty }), "create");
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.cover).toBeUndefined();
+    const edited = parsePostForm(update({ cover: empty }), "update");
+    expect(edited.success && edited.data.cover).toBeUndefined();
+  });
+
   it("un archivo vacío CON nombre llega al servicio, que lo rechazará como vacío", () => {
     const file = new File([], "vacio.png", { type: "image/png" });
     const result = parsePostForm(valid({ cover: file, coverAlt: "Alt" }), "create");
