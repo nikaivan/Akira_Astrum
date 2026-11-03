@@ -57,8 +57,9 @@ export type E2EBlog = {
 
 const BUCKET = "post-images";
 const DAY_MS = 24 * 60 * 60 * 1000;
-// PNG de 1×1 píxel (70 bytes), válido, para comprobar que next/image carga la portada.
-const PIXEL_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+// PNG sólido de 64×64 píxeles (135 bytes) para comprobar que next/image carga la portada. No puede ser de 1×1:
+// con srcset y sizes, naturalWidth se divide entre la densidad del archivo elegido (≈1,8) y 1 px se trunca a 0.
+const COVER_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAATklEQVR42u3PQQkAAAgEsOt1RY1rBN/CYAWWdl6LgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMBlATvy4PHoJM6sAAAAAElFTkSuQmCC", "base64");
 
 export const RICH_BODY = (imageUrl: string) =>
   [
@@ -100,7 +101,7 @@ export async function createE2EBlog(runId: string, adminId: string): Promise<E2E
   const coverUrl = `${url}/storage/v1/object/public/${BUCKET}/${coverName}`;
   const now = Date.now();
 
-  const upload = await db.storage.from(BUCKET).upload(coverName, PIXEL_PNG, { contentType: "image/png" });
+  const upload = await db.storage.from(BUCKET).upload(coverName, COVER_PNG, { contentType: "image/png" });
   if (upload.error) throw new Error(`No se pudo subir la portada de prueba: ${upload.error.message}`);
 
   const category = async (slug: string, name: string) => {

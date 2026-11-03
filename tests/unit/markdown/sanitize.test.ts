@@ -63,6 +63,9 @@ const PAYLOADS: [string, string][] = [
   ["HTML en bloque de código", "```html\n<script>alert(1)</script>\n```"],
   ["lenguaje del bloque malicioso", '```"><script>alert(1)</script>\ncódigo\n```'],
   ["lenguaje con espacios", "```js onclick=alert(1)\ncódigo\n```"],
+  ["pre con tabindex y evento", '<pre tabindex="-1" onfocus=alert(1)>x</pre>'],
+  ["pre con tabindex distinto de 0", '<pre tabindex="5"><code>x</code></pre>'],
+  ["tabindex en un enlace", '<a href="https://ok.test" tabindex="1" accesskey="x">x</a>'],
 ];
 
 const WRAPPERS: [string, (payload: string) => string][] = [
@@ -137,7 +140,7 @@ describe("el Markdown legítimo sigue funcionando", () => {
   it("código en línea y bloques de código con lenguaje; su contenido sale como texto", () => {
     const html = render("Usa `<b>x</b>` aquí.\n\n```js\nconst a = '<script>';\n```");
     expect(html).toMatch(/<code>&lt;b&gt;x&lt;\/b&gt;<\/code>/);
-    expect(html).toMatch(/<pre><code class="language-js">const a = &#x27;&lt;script&gt;&#x27;;\s*<\/code><\/pre>/);
+    expect(html).toMatch(/<pre tabindex="0"><code class="language-js">const a = &#x27;&lt;script&gt;&#x27;;\s*<\/code><\/pre>/);
     expect(problemsIn(html)).toEqual([]);
   });
 

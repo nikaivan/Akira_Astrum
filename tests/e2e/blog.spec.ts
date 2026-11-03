@@ -90,7 +90,8 @@ test.describe("blog público", () => {
     await titleLink(page, blog.rich.title).click();
     await expect(page).toHaveURL((url) => url.pathname === `/blog/${blog.rich.slug}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(blog.rich.title);
-    await expect(page.locator("article").getByRole("heading", { level: 2, name: "Sección legítima" })).toBeVisible();
+    // El contenido baja un nivel: «## Sección legítima» sale como h3 (el único h1 es el título de la entrada).
+    await expect(page.locator("article").getByRole("heading", { level: 3, name: "Sección legítima" })).toBeVisible();
 
     await page.goBack();
     await expect(page).toHaveURL(/\/$/);
@@ -174,7 +175,8 @@ test.describe("blog público", () => {
     expect(dialogs).toEqual([]);
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
     await expect(article.locator("iframe, script, object, embed, form")).toHaveCount(0);
-    await expect(article.locator('[onerror], [onclick], [onload], [style], a[href^="javascript" i]')).toHaveCount(0);
+    // next/image escribe su propio style en sus <img>; cualquier otro elemento con style o manejador sería contenido sin sanear.
+    await expect(article.locator('[onerror], [onclick], [onload], [style]:not(img[data-nimg]), a[href^="javascript" i]')).toHaveCount(0);
 
     const external = article.getByRole("link", { name: "enlace externo" });
     await expect(external).toHaveAttribute("href", "https://example.com/pagina");

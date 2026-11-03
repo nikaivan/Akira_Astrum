@@ -16,7 +16,7 @@ export const ALLOWED: Record<string, readonly string[]> = {
   strong: [],
   em: [],
   code: ["class"],
-  pre: [],
+  pre: ["tabindex"], // los bloques de código con desplazamiento deben poder enfocarse con el teclado
   blockquote: [],
   ul: [],
   ol: [],
@@ -66,6 +66,7 @@ export function problemsIn(html: string): string[] {
       if (!allowed.includes(attribute)) problems.push(`atributo no permitido: ${tag.name}[${attribute}]`);
       if (attribute === "href" && !/^(https?:\/\/|mailto:)/i.test(value)) problems.push(`href no permitido: ${value}`);
       if (attribute === "class" && !/^language-[a-z0-9-]+$/.test(value)) problems.push(`class no permitida: ${value}`);
+      if (attribute === "tabindex" && (tag.name !== "pre" || value !== "0")) problems.push(`tabindex no permitido: ${tag.name}[${value}]`);
       if (attribute === "rel" && value !== "noopener noreferrer") problems.push(`rel inesperado: ${value}`);
       if (attribute === "target" && value !== "_blank") problems.push(`target inesperado: ${value}`);
     }

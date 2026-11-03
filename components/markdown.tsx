@@ -59,6 +59,11 @@ export function Markdown({ source, imageOrigin }: Props) {
 
   const components: Components = {
     a: Anchor,
+    // Un bloque de código que se desplaza en horizontal debe poder enfocarse con el teclado (WCAG 2.1.1).
+    // Se añade después del sanitizado: el contenido del autor nunca puede fijar tabindex.
+    pre({ children }: ComponentProps<"pre">) {
+      return <pre tabIndex={0}>{children}</pre>;
+    },
     // Sin clase válida de lenguaje no se escribe ningún atributo (nada de class="").
     code({ className, children }: ComponentProps<"code">) {
       return <code className={className || undefined}>{children}</code>;
