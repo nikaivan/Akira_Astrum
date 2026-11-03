@@ -1,6 +1,6 @@
 # ADR 0012: Calculadora pública sin persistencia: Server Action por POST, validación en servidor y límite en memoria
 
-- **Estado:** Propuesto (2026-11-02), pendiente de que lo acepte el humano
+- **Estado:** Aceptado (2026-11-03)
 - **Fecha:** 2026-11-02
 
 ## Contexto
