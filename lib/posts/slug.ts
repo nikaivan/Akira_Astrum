@@ -8,7 +8,7 @@ function truncate(slug: string, max: number): string {
   return slug.slice(0, max).replace(/-+$/, "");
 }
 
-function isValidSlug(slug: string): boolean {
+export function isValidSlug(slug: string): boolean {
   return slug.length <= MAX_LENGTH && SLUG_PATTERN.test(slug);
 }
 

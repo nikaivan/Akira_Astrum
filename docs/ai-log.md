@@ -212,6 +212,30 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-03 · Fase 2 · Bloque 2: Markdown sanitizado, blog público y páginas de categoría
+- **Objetivo de la sesión:** mostrar las entradas publicadas con seguridad: Markdown sanitizado (A05), portada, listado, entrada `/blog/[slug]` y categoría, sin servir nunca un borrador ni una entrada despublicada (A01), reutilizando el acceso a datos y las políticas RLS de la Fase 1 sin tocarlas. Después, el estilo de `docs/design.md`.
+- **Lo que pedí a la IA (resumen):** proponer rutas, componentes y la estrategia de renderizado y caché (cómo se evita servir un borrador desde caché); elegir la librería de Markdown y de sanitizado verificando el nombre exacto y la versión de cada paquete; y la lista de tests (sanitizado con payloads reales, enlaces solo `http`/`https`/`mailto` con `rel="noopener noreferrer"`, imágenes solo del Storage del proyecto, 404 idéntico para borrador/despublicada/inexistente/slug raro, metadatos, `next/image` con el host restringido, responsive, teclado y axe). Reglas: tests primero, un commit por ciclo tras mi aprobación y nada contra producción.
+- **Lo que generó la IA (en una frase):** `lib/blog/` (lectura, tiempo de lectura, descripción, fecha, URL de portada, configuración de imágenes), `lib/markdown/` y `components/markdown.tsx` (sanitizado), un cliente de lectura anónimo sin cookies, las páginas públicas con su 404 y su error genéricos, 13 archivos de tests unitarios, un test de integración y un spec e2e de 20 casos por proyecto.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé el plan y luego los tests. Rojo: 13 archivos unitarios (12 sin cargar por faltar los módulos) y el e2e de slugs raros. Verde: 1292 unitarios; la integración completa y los 126 e2e, que ejecuté yo contra el proyecto de test.
+- **Quién ejecutó qué:** la IA ejecutó los unitarios, `tsc`, el lint, `next build` y los e2e que no necesitan datos (64 y el de slugs raros); yo ejecuté la integración y los e2e con datos contra el proyecto de test, porque la IA no llega a Supabase. Las comprobaciones visuales y de accesibilidad del estilo se hicieron con una página de vista previa temporal con datos de ejemplo (borrada después).
+- **Decisiones que tomé yo:** portadas con `alt=""` (decorativas) hasta que el bloque de subida añada el texto alternativo obligatorio (B1); páginas siempre dinámicas (B2); imágenes dentro del Markdown ya, solo del Storage del proyecto (B3); rutas `/blog` y `/categorias/[slug]` sin índice de categorías (B4). Concedí permisos para modificar tests ya aprobados, siempre de diseño del test y no de aserciones de seguridad: `export` de `isValidSlug`; cinco tests con comprobaciones que miraban el texto escapado en lugar de los atributos reales (`onclick=` como texto es inofensivo); el nivel de título del contenido; el selector de `style` de `next/image`; y la imagen de prueba.
+- **Errores que detectaron los tests:**
+  - El primer `next build` completo falló al prerenderizar `/admin`: el bloque 4 capturaba el aviso interno con el que `cookies()` marca una ruta como dinámica. Lo habría roto el despliegue. Corregido con `unstable_rethrow` y un test nuevo (`f8af840`).
+  - axe encontró un fallo real de accesibilidad: un bloque de código con desplazamiento horizontal no se podía enfocar con el teclado. Corregido con `tabindex="0"` añadido tras el sanitizado.
+  - Los e2e con datos destaparon dos tests mal planteados por la IA (el contenido baja un nivel de título; `next/image` escribe su propio `style`) y una imagen de prueba de 1×1 píxel: con `srcset` y `sizes`, `naturalWidth` se divide entre la densidad (≈1,8) y se trunca a 0, así que una imagen cargada parecía rota.
+- **Errores de la IA (no los detectó un test, salvo donde se indica):**
+  - Dio por bueno el PNG de prueba tras comprobar solo los CRC de sus bloques; hizo falta descomprimirlo y, después, reproducir el fallo en un Chromium con la tarjeta real para dar con la causa. Se descartó el optimizador, el PNG y el patrón de hosts antes de acertar con la medida.
+  - Varios tests con regex demasiado amplios (texto escapado frente a atributos), `dateTime` en lugar de `datetime`, y un `beforeEach` que devolvía el mock (Vitest lo ejecutaba como limpieza).
+  - No había ejecutado nunca `next build`: el fallo de `/admin` llevaba desde el bloque 4 sin detectarse.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0013](adr/0013-markdown-publico-sanitizado-react-markdown-y-lista-blanca-explicita.md) y [ADR 0014](adr/0014-lectura-publica-sin-cache-cliente-anonimo-y-404-unico.md), propuestos y pendientes de que los acepte yo.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** `react-markdown` 10.1.0 y `rehype-sanitize` 6.0.0 (ver la tabla de dependencias). Entran 80 paquetes transitivos (79 MIT y 1 ISC), sin scripts de instalación; `npm audit` no cambia.
+- **Desviación respecto al plan (si la hay) y motivo:** la entrada vive en `/blog/[slug]` y no en `/posts/[slug]` (`PLAN.md` §7), y no se usa el grupo de rutas `(public)`. El extracto de la entrada destacada de `docs/design.md` no se muestra: exigiría un campo nuevo en los datos de las tarjetas y en tests ya aprobados. Ver la tabla "Desviaciones respecto al plan".
+- **Paso 4 (refactor y estilo):** las clases de enlace repetidas en seis sitios pasan a una sola (`textLinkClass`), y la lista de categorías, la línea de fecha y la cuadrícula de tarjetas a componentes compartidos (`CategoryLinks`, `PostMeta`, `PostGrid`). Estilo de `docs/design.md`: portada con entrada destacada y cuadrícula de 1, 2 y 3 columnas, tarjetas, tipografía del contenido de la entrada con ancho de lectura de 70 caracteres, cita con barra dorada y cabecera y pie alineados con la cuadrícula. Comprobado en escritorio y móvil con axe, desbordamiento y objetivos de 44 px.
+- **Resultado:** blog público completo y verificado con datos reales. Pendiente declarado: texto alternativo de portada obligatorio y extracto de la entrada destacada (bloque de subida de imágenes), paginación (límite de 50), ISR con revalidación bajo demanda si algún día se quiere, y que el service worker (Fase 3) no cachee estas rutas.
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -233,6 +257,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | `shadcn` 4.23.0 | CLI como dependencia de ejecución, porque `app/globals.css` importa `shadcn/tailwind.css` (commit `b096433`) | `shadcn-ui/ui`, MIT. Arrastra `@shadcn/registry` y `deepmerge`: 5 avisos nuevos en `npm audit` (2 bajos y 3 moderados) |
 | 2026-11-02 | `zod` 4.6.7 | Validación de la fecha de nacimiento en `lib/astrology/birth-date.ts` (Fase 1, bloque 2) | `colinhacks/zod`, MIT, sin dependencias propias. Versión exacta; `npm audit` sin cambios (0 altas) |
 | 2026-11-02 | `@axe-core/playwright` 4.14.0, `axe-core` 4.14.0 | Tests de accesibilidad en `/login` (Fase 1, bloque 4); solo de desarrollo | `dequelabs/axe-core-npm`, MPL-2.0 (ambas), versión exacta. `@axe-core/playwright` pide `playwright-core >= 1` y trae `axe-core ~4.14.0` |
+| 2026-11-03 | `react-markdown` 10.1.0 | Convierte el Markdown de las entradas en elementos de React, sin HTML crudo (Fase 2, bloque 2) | `remarkjs/react-markdown`, MIT; mantenedores `wooorm`, `johno` y `remcohaszing`. Nombre y repositorio verificados con `npm view`. Versión exacta; peers `react >=18` |
+| 2026-11-03 | `rehype-sanitize` 6.0.0 | Lista blanca explícita sobre el árbol del Markdown (Fase 2, bloque 2) | `rehypejs/rehype-sanitize`, MIT; mantenedores `wooorm` y `kmck`. Verificado con `npm view`. Versión exacta. Las dos arrastran 80 paquetes transitivos (79 MIT y 1 ISC) del ecosistema `unified`, sin scripts de instalación; `npm audit` sin cambios (21, 0 altas) |
 | 2026-11-02 | `actions/checkout@v4`, `actions/setup-node@v4` (GitHub Actions) | CI (paso 7) | Repositorios oficiales `actions/*`, MIT, no archivados. Fijadas a la versión mayor, no a un hash |
 
 ## Desviaciones respecto al plan (resumen)
@@ -254,6 +280,9 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | Aviso `EACCES` en `node_modules/.vitest-cache` en mi máquina | `node_modules` creado con permisos de `root` | Resuelto con `rm -rf node_modules && npm ci`; no era un problema del código |
 | 2026-11-02 | Los e2e fallaban en mi máquina | Causa de entorno, no de código (en un clon limpio de `main` pasan). Faltaba el navegador de Playwright en mi máquina | Resuelto instalando Chromium (`npx playwright install chromium`); no era un problema del código |
 | 2026-11-03 | Esquema de producción aplicado antes de la Fase 4 | Para usar la intranet en local; el login fallaba porque no existía `profiles` | Aplicadas a mano las 3 migraciones (sin la utilidad de test), registro desactivado y primer admin creado por SQL. Pendiente: despliegue en Vercel |
+| 2026-11-03 | La entrada vive en `/blog/[slug]` y la categoría en `/categorias/[slug]`, no en `/posts/[slug]` | Lo pedí así al encargar el bloque; `PLAN.md` §7 decía `/posts` y no se modifica | Ninguno funcional; sin grupo de rutas `(public)` |
+| 2026-11-03 | Las portadas llevan `alt=""` y la entrada destacada no muestra extracto | `posts` no tiene columna de texto alternativo ni los datos de las tarjetas llevan extracto; añadirlos cambia el esquema y tests ya aprobados | Se resuelve en el bloque de subida de imágenes (`cover_alt` obligatorio) |
+| 2026-11-03 | El e2e comprueba que el servidor está listo en `/login` y no en `/` | La portada lee la base de datos y sin Supabase no responde 200 | Ninguno con el proyecto de test conectado |
 | 2026-11-02 | El `smoke` e2e usa el puerto 3100 y `npm run test:e2e` exige `.env.test.local` | Para que los e2e no reutilicen un servidor levantado con `.env.local` (producción) | Hay que parar el `npm run dev` antes de ejecutar los e2e |
 
 ## Prompts que funcionaron y que no (opcional)
@@ -272,6 +301,9 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Rojo y verde reales | Pegar la salida completa de la ejecución en tu proyecto | Funcionó: destapó dos errores de la IA en sus propios tests que su emulación local no vio | No sustituir la ejecución real por una emulación |
 | Estado de Git | "Comprueba dónde estás subiendo" | Destapó el error de la rama ya fusionada | Comprobar PR y rama tras cada fusión, antes del siguiente commit |
 | Un error sin pistas | Preguntar si era un fallo o algo pendiente y pedir consultas SQL de solo lectura para distinguirlo | Funcionó: una sola consulta (`to_regclass`) separó "login roto" de "base de datos vacía" sin tocar nada | Con mensajes de error genéricos a propósito, pedir un diagnóstico de solo lectura antes de cambiar nada |
+| Un fallo que nadie sabe explicar | Pedir un diagnóstico que imprima datos (estado HTTP, tipo, tamaño, momento) en vez de adivinar, y reproducirlo antes en un navegador | Funcionó: se descartaron tres hipótesis y se encontró el `srcset` con `naturalWidth` | Comprobar la medida del test antes de culpar a la aplicación |
+| Verificación incompleta | Ejecutar `next build` y no solo `tsc`, los tests y el lint | Destapó un fallo del bloque 4 que habría roto el despliegue (`/admin`) | Incluir `next build` en cada cierre de bloque, y proponerlo en la CI |
+| Probar sin tus datos | Montar una página de vista previa temporal con datos de ejemplo y medirla en un navegador real | Funcionó para el estilo: axe, desbordamiento, 44 px y capturas antes de pedirte los e2e | Borrar siempre los archivos temporales y la caché `.next` |
 
 ## Resumen final para la memoria (se completa al terminar)
 

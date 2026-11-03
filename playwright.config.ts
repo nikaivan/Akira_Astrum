@@ -18,7 +18,8 @@ export default defineConfig({
   ],
   webServer: {
     command: `npm run dev -- --port ${E2E_PORT}`,
-    url: E2E_BASE_URL,
+    // Una página que no lee datos: así el servidor arranca aunque Supabase no responda.
+    url: `${E2E_BASE_URL}/login`,
     // Nunca se reutiliza un servidor ya levantado: podría estar conectado a producción.
     reuseExistingServer: false,
     env: serverEnvFor(testEnvironment),

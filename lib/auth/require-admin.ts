@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { authorizeAdmin, type AdminDecision } from "./authorize";
 import { PRIVATE_HEADERS } from "./private-headers";
@@ -10,7 +10,10 @@ async function currentAdmin(): Promise<{ decision: AdminDecision; supabase: Supa
   try {
     const supabase = await createClient();
     return { decision: await authorizeAdmin(supabase), supabase };
-  } catch {
+  } catch (error) {
+    // Los errores internos de Next (redirect, notFound o el aviso de uso dinámico de cookies()) no son
+    // un fallo: si se capturaran, el build de /admin fallaría. Cualquier otro error falla cerrado.
+    unstable_rethrow(error);
     return { decision: { status: "error" }, supabase: null };
   }
 }

@@ -7,7 +7,7 @@
  * No se usa para comprobar estados: eso se hace con la sesión del admin de prueba.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { inject } from "vitest";
 import { assertTestEnvironment } from "./environment";
 
@@ -204,6 +204,88 @@ export async function seedContent(tag: string): Promise<Seed> {
     spare,
     published,
     draft,
+    cleanup: () => cleanupPrefix(prefix),
+  };
+}
+
+export type BlogSeed = {
+  prefix: string;
+  coverName: string;
+  categories: { main: Row; draftsOnly: Row };
+  /** Publicadas, de más nueva a más antigua: newest, xss, middle, oldest y unpublishable. */
+  posts: { newest: Row; xss: Row; middle: Row; oldest: Row; unpublishable: Row };
+  /** Borradores: uno en la categoría principal y otro en la categoría que solo tiene borradores. */
+  drafts: { inMain: Row; inDraftsOnly: Row };
+  titles: { newest: string; xss: string; middle: string; oldest: string; unpublishable: string };
+  cleanup: () => Promise<void>;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const XSS_TITLE = "<script>alert(1)</script>";
+
+/** Datos del blog público: entradas publicadas con fechas distintas, borradores y categorías. */
+export async function seedBlog(tag: string): Promise<BlogSeed> {
+  const { runId, users } = inject("fixtures");
+  const db = serviceClient();
+  const prefix = `${runId}-${tag}`;
+  const coverName = `${randomUUID()}.png`;
+  const now = Date.now();
+
+  await ensureProfiles();
+  const category = (slug: string) =>
+    must<Row>(db.from("categories").insert({ name: `${prefix} ${slug}`, slug: `${prefix}-${slug}` }).select("id, slug").single());
+  const post = (slug: string, title: string, daysAgo: number | null, cover: string | null = null) =>
+    must<Row>(
+      db
+        .from("posts")
+        .insert({
+          title,
+          slug: `${prefix}-${slug}`,
+          content_md: `Contenido de **${slug}**.`,
+          cover_image_path: cover,
+          author_id: users.admin.id,
+          status: daysAgo === null ? "draft" : "published",
+          published_at: daysAgo === null ? null : new Date(now - daysAgo * DAY_MS).toISOString(),
+        })
+        .select("id, slug")
+        .single(),
+    );
+
+  const titles = {
+    newest: `${prefix} nueva`,
+    xss: XSS_TITLE,
+    middle: `${prefix} intermedia`,
+    oldest: `${prefix} antigua`,
+    unpublishable: `${prefix} despublicable`,
+  };
+  const main = await category("cat");
+  const draftsOnly = await category("drafts");
+  const newest = await post("nueva", titles.newest, 1, coverName);
+  const xss = await post("xss", titles.xss, 2);
+  const middle = await post("intermedia", titles.middle, 3);
+  const oldest = await post("antigua", titles.oldest, 4);
+  const unpublishable = await post("despublicable", titles.unpublishable, 5);
+  const draftInMain = await post("borrador", `${prefix} borrador`, null);
+  const draftInDraftsOnly = await post("borrador-2", `${prefix} borrador 2`, null);
+
+  await run(
+    db.from("post_categories").insert([
+      { post_id: newest.id, category_id: main.id },
+      { post_id: xss.id, category_id: main.id },
+      { post_id: oldest.id, category_id: main.id },
+      { post_id: unpublishable.id, category_id: main.id },
+      { post_id: draftInMain.id, category_id: main.id },
+      { post_id: draftInDraftsOnly.id, category_id: draftsOnly.id },
+    ]),
+  );
+
+  return {
+    prefix,
+    coverName,
+    categories: { main, draftsOnly },
+    posts: { newest, xss, middle, oldest, unpublishable },
+    drafts: { inMain: draftInMain, inDraftsOnly: draftInDraftsOnly },
+    titles,
     cleanup: () => cleanupPrefix(prefix),
   };
 }
