@@ -21,7 +21,8 @@ const COVER_ERRORS: Record<ImageFailure, string> = {
   dimensions: messages.COVER_DIMENSIONS,
 };
 
-type Inspected = { ok: true; bytes: Uint8Array; image: ValidImage } | Failure<PostFieldErrors>;
+type InspectedCover = { ok: true; bytes: Uint8Array; image: ValidImage };
+type Inspected = InspectedCover | Failure<PostFieldErrors>;
 
 /** Frena el abuso (cada intento cuenta, también los rechazados) y valida el archivo por su contenido antes de tocar Storage. */
 async function inspectCover(file: File, userId: string, limiter?: RateLimiter): Promise<Inspected> {
@@ -36,8 +37,10 @@ async function inspectCover(file: File, userId: string, limiter?: RateLimiter): 
   return check.ok ? { ok: true, bytes, image: check } : fail(messages.VALIDATION_SUMMARY, { cover: COVER_ERRORS[check.reason] });
 }
 
-/** Retira un archivo recién subido cuando lo que venía después ha fallado. Si esto también falla, no hay nada más que hacer. */
-const discard = (supabase: SupabaseClient, path: string | null) => removeCoverFile(supabase, path);
+/** Borra un archivo que ya no hace falta y devuelve el aviso a mostrar si no se pudo (sin ruta no hay nada que borrar). */
+async function removalWarning(supabase: SupabaseClient, path: string | null, warning: string): Promise<string | undefined> {
+  return path !== null && !(await removeCoverFile(supabase, path)) ? warning : undefined;
+}
 
 const stateOf = (row: PostRow): PostState => ({
   status: row.status as PostState["status"],
@@ -75,7 +78,7 @@ export function performCreatePost({ supabase, userId, input, now, limiter }: Con
     if (!parsed.success) return invalid(parsed.errors);
     const data = parsed.data;
 
-    let cover: Extract<Inspected, { ok: true }> | null = null;
+    let cover: InspectedCover | null = null;
     if (data.cover) {
       const inspected = await inspectCover(data.cover, userId, limiter);
       if (!inspected.ok) return inspected;
@@ -114,7 +117,7 @@ export function performCreatePost({ supabase, userId, input, now, limiter }: Con
       .select("id")
       .single();
     if (error || !created) {
-      await discard(supabase, coverPath);
+      await removeCoverFile(supabase, coverPath); // recién subida: si esto también falla, no hay nada más que hacer
       return error?.code === PG_UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { slug: messages.SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
     }
     const id = String((created as { id: unknown }).id);
@@ -128,7 +131,7 @@ export function performCreatePost({ supabase, userId, input, now, limiter }: Con
         } catch {
           // sin efecto: el resultado ya es un fallo
         }
-        await discard(supabase, coverPath);
+        await removeCoverFile(supabase, coverPath); // recién subida: si esto también falla, no hay nada más que hacer
         return linkError.code === PG_FOREIGN_KEY_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { categoryIds: messages.CATEGORY_MISSING }) : fail(messages.GENERIC_ERROR);
       }
     }
@@ -160,7 +163,7 @@ const savedMessage = (intent: PostInput["intent"]) => (intent === "publish" ? me
 
 type CoverPlan =
   | { failure: Failure<PostFieldErrors> }
-  | { upload: Extract<Inspected, { ok: true }> | null; patch: Record<string, unknown>; remove: string | null };
+  | { upload: InspectedCover | null; patch: Record<string, unknown>; remove: string | null };
 
 /** Qué hacer con la portada al editar: quitar, reemplazar, cambiar solo el texto alternativo o nada. Valida antes de tocar nada. */
 async function planCover(current: PostRow, data: PostInput, userId: string, limiter?: RateLimiter): Promise<CoverPlan> {
@@ -220,12 +223,12 @@ export function performUpdatePost({ supabase, userId, input, now, limiter }: Con
     // Protegida por el estado leído: si otra petición lo cambió entre medias, no se pisa nada.
     const { data: updated, error } = await supabase.from("posts").update(patch).eq("id", data.id).eq("status", current.status).select("id");
     if (error || !updated || updated.length === 0) {
-      await discard(supabase, newPath);
+      await removeCoverFile(supabase, newPath); // recién subida: si esto también falla, no hay nada más que hacer
       if (error) return error.code === PG_UNIQUE_VIOLATION ? fail(messages.VALIDATION_SUMMARY, { slug: messages.SLUG_TAKEN }) : fail(messages.GENERIC_ERROR);
       return fail(alreadyIn(data.intent));
     }
 
-    const warning = cover.remove !== null && !(await removeCoverFile(supabase, cover.remove)) ? messages.COVER_OLD_NOT_REMOVED : undefined;
+    const warning = await removalWarning(supabase, cover.remove, messages.COVER_OLD_NOT_REMOVED);
 
     const categoriesFailure = await replaceCategories(supabase, data.id, data.categoryIds);
     if (categoriesFailure) return categoriesFailure;
@@ -271,7 +274,7 @@ export function performDeletePost({ supabase, input }: Context): Promise<PostRes
     if (!data || data.length === 0) return fail(messages.POST_NOT_FOUND);
     const row = data[0] as { slug: unknown; cover_image_path: unknown };
     const cover = typeof row.cover_image_path === "string" ? row.cover_image_path : null;
-    const warning = cover !== null && !(await removeCoverFile(supabase, cover)) ? messages.COVER_NOT_REMOVED_ON_DELETE : undefined;
+    const warning = await removalWarning(supabase, cover, messages.COVER_NOT_REMOVED_ON_DELETE);
     return { ok: true, id, slug: String(row.slug), message: messages.POST_DELETED, ...(warning ? { warning } : {}) };
   });
 }
