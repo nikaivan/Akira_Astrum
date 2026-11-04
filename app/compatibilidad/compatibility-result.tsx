@@ -1,5 +1,7 @@
 import { CircleCheck, CircleMinus, TriangleAlert } from "lucide-react";
+import { panelClass } from "@/components/ui/surface-styles";
 import type { CompatibilityResultData, PersonResult } from "@/lib/compatibility/calculate";
+import { cn } from "@/lib/utils";
 
 type Level = CompatibilityResultData["level"];
 
@@ -32,7 +34,7 @@ export function CompatibilityResult({ result }: { result: CompatibilityResultDat
   const { Icon, className } = levelStyle(result.level);
 
   return (
-    <section aria-labelledby="result-heading" className="flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-soft sm:p-8">
+    <section aria-labelledby="result-heading" className={cn(panelClass, "flex flex-col gap-5")}>
       <h2 id="result-heading" className="text-center font-heading text-4xl font-light">
         Resultado
       </h2>

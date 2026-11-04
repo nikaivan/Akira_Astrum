@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Star } from "@/components/ornaments";
+import { container } from "@/components/ui/surface-styles";
 import { cn } from "@/lib/utils";
 
 const linkClass =
@@ -13,7 +14,7 @@ export function SiteHeader({
 }) {
   return (
     <header data-surface="night" className="border-b">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 px-4 py-1">
+      <div className={cn(container.wide, "flex flex-wrap items-center justify-between gap-x-4 py-1")}>
         <Link
           href="/"
           className={cn(linkClass, "gap-2 font-heading text-xl font-medium tracking-[0.06em] sm:text-2xl")}

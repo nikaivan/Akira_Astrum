@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { PageBanner } from "@/components/page-banner";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { container } from "@/components/ui/surface-styles";
 import { DISCLAIMER } from "@/lib/astrology/compatibility-data";
+import { cn } from "@/lib/utils";
 import { CompatibilityForm } from "./compatibility-form";
 
 export const metadata: Metadata = {
@@ -19,7 +21,7 @@ export default function CompatibilityPage() {
           title="Compatibilidad entre signos"
           description="Introduce las dos fechas de nacimiento y descubre cómo se relacionan sus signos solares."
         />
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-12">
+        <div className={cn(container.form, "flex flex-1 flex-col gap-6 py-12")}>
           <CompatibilityForm disclaimer={DISCLAIMER} />
         </div>
       </main>

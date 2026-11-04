@@ -4,6 +4,7 @@ import { Ornament } from "@/components/ornaments";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { textLinkClass } from "@/components/ui/link-styles";
+import { container } from "@/components/ui/surface-styles";
 import { PostCard } from "@/components/post-card";
 import { PostGrid } from "@/components/post-grid";
 import { listPublishedPosts } from "@/lib/blog/queries";
@@ -29,7 +30,7 @@ export default async function Home() {
       <SiteHeader />
       <main className="flex flex-1 flex-col">
         <HomeHero />
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-14">
+        <div className={cn(container.wide, "flex flex-col gap-10 py-14")}>
           <section aria-labelledby="latest-heading" className="flex flex-col gap-8">
             <div className="flex flex-col items-center gap-3 text-center">
               <h2 id="latest-heading" className="font-heading text-4xl font-light sm:text-5xl">

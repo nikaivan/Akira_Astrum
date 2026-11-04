@@ -3,9 +3,11 @@ import { PageBanner } from "@/components/page-banner";
 import { PostGrid } from "@/components/post-grid";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { container } from "@/components/ui/surface-styles";
 import { pageTitle } from "@/lib/blog/metadata";
 import { listPublishedPosts } from "@/lib/blog/queries";
 import { createPublicClient } from "@/lib/supabase/public";
+import { cn } from "@/lib/utils";
 
 // Siempre dinámica: nada de esta página se guarda en caché.
 export const dynamic = "force-dynamic";
@@ -29,7 +31,7 @@ export default async function BlogPage() {
       <SiteHeader current="blog" />
       <main className="flex flex-1 flex-col">
         <PageBanner title="Blog" />
-        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-12">
+        <div className={cn(container.wide, "flex flex-1 flex-col gap-8 py-12")}>
           {result.data.length === 0 ? (
             <p className="text-center text-lg text-muted-foreground">
               Todavía no hay entradas.
