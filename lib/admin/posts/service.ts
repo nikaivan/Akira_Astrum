@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import * as messages from "@/lib/admin/messages";
 import { fail, guarded, invalid, PG_FOREIGN_KEY_VIOLATION, PG_UNIQUE_VIOLATION, type Failure } from "@/lib/admin/result";
 import type { RateLimiter } from "@/lib/auth/rate-limit";
+import { projectImageNames } from "@/lib/posts/content-images";
 import { removeCoverFile, uploadCover } from "@/lib/storage/covers";
 import { MAX_IMAGE_BYTES, validateImage, type ImageFailure, type ValidImage } from "@/lib/storage/image-validation";
 import { isValidSlug, slugify, uniqueSlug } from "@/lib/posts/slug";
@@ -10,8 +11,8 @@ import { parsePostDeleteForm, parsePostForm, parsePostIdForm, type PostFieldErro
 
 export type PostResult = { ok: true; id: string; slug: string; message: string; warning?: string } | Failure<PostFieldErrors>;
 
-type Context = { supabase: SupabaseClient; userId: string; input: unknown; now: Date; limiter?: RateLimiter };
-type PostRow = { id: string; slug: string; status: string; published_at: string | null; cover_image_path: string | null; cover_alt: string | null };
+type Context = { supabase: SupabaseClient; userId: string; input: unknown; now: Date; limiter?: RateLimiter; storageOrigin?: string | null };
+type PostRow = { id: string; slug: string; status: string; published_at: string | null; cover_image_path: string | null; cover_alt: string | null; content_md: string };
 
 const COVER_ERRORS: Record<ImageFailure, string> = {
   empty: messages.COVER_EMPTY,
@@ -21,11 +22,11 @@ const COVER_ERRORS: Record<ImageFailure, string> = {
   dimensions: messages.COVER_DIMENSIONS,
 };
 
-type InspectedCover = { ok: true; bytes: Uint8Array; image: ValidImage };
-type Inspected = InspectedCover | Failure<PostFieldErrors>;
+export type InspectedCover = { ok: true; bytes: Uint8Array; image: ValidImage };
+export type Inspected = InspectedCover | Failure<PostFieldErrors>;
 
 /** Frena el abuso (cada intento cuenta, también los rechazados) y valida el archivo por su contenido antes de tocar Storage. */
-async function inspectCover(file: File, userId: string, limiter?: RateLimiter): Promise<Inspected> {
+export async function inspectCover(file: File, userId: string, limiter?: RateLimiter): Promise<Inspected> {
   if (limiter) {
     if (limiter.isBlocked(userId)) return fail(messages.UPLOAD_RATE_LIMIT);
     limiter.recordFailure(userId);
@@ -37,9 +38,21 @@ async function inspectCover(file: File, userId: string, limiter?: RateLimiter): 
   return check.ok ? { ok: true, bytes, image: check } : fail(messages.VALIDATION_SUMMARY, { cover: COVER_ERRORS[check.reason] });
 }
 
-/** Borra un archivo que ya no hace falta y devuelve el aviso a mostrar si no se pudo (sin ruta no hay nada que borrar). */
-async function removalWarning(supabase: SupabaseClient, path: string | null, warning: string): Promise<string | undefined> {
-  return path !== null && !(await removeCoverFile(supabase, path)) ? warning : undefined;
+/** Borra los archivos que ya no hacen falta y devuelve el aviso a mostrar si alguno no se pudo (sin ruta no hay nada que borrar). */
+async function removalWarning(supabase: SupabaseClient, paths: Array<string | null>, warning: string): Promise<string | undefined> {
+  let failed = false;
+  for (const path of paths) if (path !== null && !(await removeCoverFile(supabase, path))) failed = true;
+  return failed ? warning : undefined;
+}
+
+/** De esas imágenes del contenido, las que ninguna entrada menciona ya. Ante un error de lectura se conservan todas. */
+async function unusedImages(supabase: SupabaseClient, names: string[]): Promise<string[]> {
+  const unused: string[] = [];
+  for (const name of names) {
+    const { data, error } = await supabase.from("posts").select("id").like("content_md", `%${name}%`);
+    if (!error && (data ?? []).length === 0) unused.push(name);
+  }
+  return unused;
 }
 
 const stateOf = (row: PostRow): PostState => ({
@@ -55,7 +68,7 @@ async function missingCategories(supabase: SupabaseClient, ids: string[]): Promi
 }
 
 async function loadPost(supabase: SupabaseClient, id: string): Promise<PostRow | null> {
-  const { data, error } = await supabase.from("posts").select("id, slug, status, published_at, cover_image_path, cover_alt").eq("id", id).maybeSingle();
+  const { data, error } = await supabase.from("posts").select("id, slug, status, published_at, cover_image_path, cover_alt, content_md").eq("id", id).maybeSingle();
   if (error) throw new Error("lectura");
   return (data as PostRow | null) ?? null;
 }
@@ -183,7 +196,7 @@ async function planCover(current: PostRow, data: PostInput, userId: string, limi
   return { upload: null, patch: {}, remove: null };
 }
 
-export function performUpdatePost({ supabase, userId, input, now, limiter }: Context): Promise<PostResult> {
+export function performUpdatePost({ supabase, userId, input, now, limiter, storageOrigin }: Context): Promise<PostResult> {
   return guarded(async () => {
     const parsed = parsePostForm(input, "update");
     if (!parsed.success) return invalid(parsed.errors);
@@ -228,7 +241,10 @@ export function performUpdatePost({ supabase, userId, input, now, limiter }: Con
       return fail(alreadyIn(data.intent));
     }
 
-    const warning = await removalWarning(supabase, cover.remove, messages.COVER_OLD_NOT_REMOVED);
+    // Las imágenes que el texto anterior mencionaba y el nuevo ya no (y que ninguna otra entrada usa) se borran con la portada antigua.
+    const kept = new Set(projectImageNames(data.content, storageOrigin));
+    const dropped = projectImageNames(current.content_md, storageOrigin).filter((name) => !kept.has(name));
+    const warning = await removalWarning(supabase, [cover.remove, ...(await unusedImages(supabase, dropped))], messages.COVER_OLD_NOT_REMOVED);
 
     const categoriesFailure = await replaceCategories(supabase, data.id, data.categoryIds);
     if (categoriesFailure) return categoriesFailure;
@@ -262,19 +278,20 @@ async function changeStatus({ supabase, input, now }: Context, to: "published" |
 export const performPublishPost = (context: Context) => guarded(() => changeStatus(context, "published"));
 export const performUnpublishPost = (context: Context) => guarded(() => changeStatus(context, "draft"));
 
-export function performDeletePost({ supabase, input }: Context): Promise<PostResult> {
+export function performDeletePost({ supabase, input, storageOrigin }: Context): Promise<PostResult> {
   return guarded(async () => {
     const parsed = parsePostDeleteForm(input);
     if (!parsed.success) return invalid(parsed.errors);
     const { id } = parsed.data;
 
     // Primero la fila y después su portada: nunca queda una ruta rota; el peor caso es un archivo que no se pudo borrar y se avisa.
-    const { data, error } = await supabase.from("posts").delete().eq("id", id).select("id, slug, cover_image_path");
+    const { data, error } = await supabase.from("posts").delete().eq("id", id).select("id, slug, cover_image_path, content_md");
     if (error) return fail(messages.GENERIC_ERROR);
     if (!data || data.length === 0) return fail(messages.POST_NOT_FOUND);
-    const row = data[0] as { slug: unknown; cover_image_path: unknown };
+    const row = data[0] as { slug: unknown; cover_image_path: unknown; content_md: unknown };
     const cover = typeof row.cover_image_path === "string" ? row.cover_image_path : null;
-    const warning = await removalWarning(supabase, cover, messages.COVER_NOT_REMOVED_ON_DELETE);
+    const images = typeof row.content_md === "string" ? await unusedImages(supabase, projectImageNames(row.content_md, storageOrigin)) : [];
+    const warning = await removalWarning(supabase, [cover, ...images], messages.COVER_NOT_REMOVED_ON_DELETE);
     return { ok: true, id, slug: String(row.slug), message: messages.POST_DELETED, ...(warning ? { warning } : {}) };
   });
 }

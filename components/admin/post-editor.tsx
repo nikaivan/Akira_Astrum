@@ -7,11 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { SLUG_LOCKED } from "@/lib/admin/messages";
 import { createPost, updatePost } from "@/lib/admin/posts/actions";
 import type { ActionState } from "@/lib/admin/state";
+import { insertSnippet } from "@/lib/posts/content-images";
 import { slugify } from "@/lib/posts/slug";
 import { cn } from "@/lib/utils";
 import { CategoryPicker } from "./category-picker";
 import { CoverField } from "./cover-field";
 import { EditorTabs, type EditorTab } from "./editor-tabs";
+import { ImageInserter } from "./image-inserter";
 import { MarkdownPreview } from "./markdown-preview";
 import { cardClass, errorClass, helpClass, labelClass } from "./styles";
 
@@ -63,6 +65,22 @@ export function PostEditor({ post, categories, imageOrigin, initialState = null 
   useEffect(() => {
     if (state && !state.ok) summary.current?.focus();
   }, [state]);
+
+  // Una imagen insertada se escribe en la posición del cursor (o al final) y el cursor queda detrás de ella.
+  const editor = useRef<HTMLTextAreaElement>(null);
+  const cursor = useRef<number | null>(null);
+  function insertIntoContent(markdown: string) {
+    const area = editor.current;
+    const result = insertSnippet(content, area?.selectionStart ?? content.length, area?.selectionEnd ?? content.length, markdown);
+    cursor.current = result.cursor;
+    setContent(result.text);
+  }
+  useEffect(() => {
+    if (cursor.current === null) return;
+    editor.current?.focus();
+    editor.current?.setSelectionRange(cursor.current, cursor.current);
+    cursor.current = null;
+  }, [content]);
 
   // El resumen repite los mensajes de cada campo, para que un lector de pantalla los oiga todos al llegar el foco.
   const summaryMessages = Object.entries(fieldErrors)
@@ -168,10 +186,12 @@ export function PostEditor({ post, categories, imageOrigin, initialState = null 
 
         <div className="grid gap-6 md:grid-cols-2">
           <div id="panel-edit" className={cn("content-start gap-1", tab === "edit" ? "grid" : "hidden", "md:grid")}>
+            <ImageInserter onInsert={insertIntoContent} />
             <label htmlFor="post-content" className={labelClass}>
               Contenido (Markdown)
             </label>
             <Textarea
+              ref={editor}
               id="post-content"
               name="content"
               value={content}

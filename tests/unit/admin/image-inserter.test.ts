@@ -41,7 +41,7 @@ describe.each([
   it("el botón «Insertar imagen» es de tipo button (no envía el formulario) y mide al menos 44 px", () => {
     const button = tag(html, /<button[^>]*>Insertar imagen<\/button>/);
     expect(button).toContain('type="button"');
-    expect(button).not.toContain("disabled");
+    expect(button).not.toMatch(/\sdisabled(=|\s|>)/);
     expect(button).toMatch(/min-h-11|h-11/);
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { imageMarkdown, insertSnippet, projectImageNames } from "@/lib/markdown/content-images";
-import { IMAGE_URL, ORIGIN, render, tagsOf } from "./support";
+import { imageMarkdown, insertSnippet, projectImageNames } from "@/lib/posts/content-images";
+import { IMAGE_URL, ORIGIN, render, tagsOf } from "../markdown/support";
 
 const NAME_A = "11111111-2222-3333-4444-555555555555.png";
 const NAME_B = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.jpg";

@@ -52,7 +52,7 @@ const FORBIDDEN_UPDATE_COLUMNS = new Set(["id", "author_id", "created_at"]);
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 const likeToRegExp = (pattern: string) =>
-  new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("%", ".*").replaceAll("_", ".")}$`);
+  new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replaceAll("%", "[\\s\\S]*").replaceAll("_", ".")}$`);
 
 export function post(overrides: Row = {}): Row {
   return {
