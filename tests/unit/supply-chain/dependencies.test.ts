@@ -6,7 +6,7 @@ const root = (path: string) => new URL(`../../../${path}`, import.meta.url);
 const read = (path: string) => readFileSync(root(path), "utf8");
 
 type Manifest = { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-type LockEntry = { version?: string; resolved?: string; integrity?: string; license?: string; dev?: boolean; optional?: boolean; hasInstallScript?: boolean; link?: boolean };
+type LockEntry = { version?: string; resolved?: string; integrity?: string; license?: string; dev?: boolean; optional?: boolean; hasInstallScript?: boolean; link?: boolean; inBundle?: boolean };
 type Lock = { lockfileVersion: number; packages: Record<string, LockEntry & Manifest> };
 
 const manifest = JSON.parse(read("package.json")) as Manifest;
@@ -50,6 +50,32 @@ const REVIEWED_DEVELOPMENT: Record<string, string> = {
   vitest: "tests unitarios",
 };
 
+const REGISTRY = "https://registry.npmjs.org/";
+const hasIntegrity = (entry: LockEntry) => !entry.link && Boolean(entry.integrity) && Boolean(entry.resolved?.startsWith(REGISTRY));
+
+/**
+ * Entradas del lockfile sin integrity verificable. Una entrada `inBundle` queda cubierta si el paquete que la contiene
+ * (el ancestro más cercano que no sea también `inBundle`) está en el lockfile con integrity y origen en npm.
+ */
+function integrityOffenders(packages: Record<string, LockEntry>): string[] {
+  const coveredByParent = (path: string): boolean => {
+    let current = path;
+    while (packages[current]?.inBundle) {
+      const cut = current.lastIndexOf("/node_modules/");
+      if (cut === -1) return false;
+      current = current.slice(0, cut);
+      const parent = packages[current];
+      if (!parent) return false;
+      if (!parent.inBundle) return hasIntegrity(parent);
+    }
+    return false;
+  };
+  return Object.entries(packages)
+    .filter(([path]) => path !== "")
+    .filter(([path, entry]) => !hasIntegrity(entry) && !(entry.inBundle === true && coveredByParent(path)))
+    .map(([path]) => path);
+}
+
 const sorted = (record: Record<string, unknown> | undefined) => Object.keys(record ?? {}).sort();
 
 describe("versiones fijadas", () => {
@@ -81,10 +107,48 @@ describe("lockfile", () => {
   });
 
   it("todo paquete lleva integrity y se resuelve desde el registro de npm", () => {
-    const offenders = entries
-      .filter(([, entry]) => entry.link || !entry.integrity || !entry.resolved?.startsWith("https://registry.npmjs.org/"))
-      .map(([path]) => path);
-    expect(offenders).toEqual([]);
+    expect(integrityOffenders(lock.packages)).toEqual([]);
+  });
+
+  // Los paquetes empaquetados dentro del tarball de otro (`inBundle`) no llevan integrity propia: la cubre la del paquete que
+  // los contiene. npm los añade solo al regenerar el lockfile (p. ej. los de @tailwindcss/oxide-wasm32-wasi en las PR de Dependabot).
+  describe("paquetes empaquetados dentro de otro (inBundle)", () => {
+    const parent = "node_modules/@tailwindcss/oxide-wasm32-wasi";
+    const verifiedParent = { version: "4.3.3", resolved: "https://registry.npmjs.org/x/-/x-1.0.0.tgz", integrity: "sha512-abc" };
+    const bundled = (extra: Partial<LockEntry> = {}): LockEntry => ({ version: "1.0.0", license: "MIT", inBundle: true, ...extra });
+
+    it("el padre del lockfile real tiene integrity (la excepción se apoya en él)", () => {
+      expect(lock.packages[parent]?.integrity).toMatch(/^sha512-/);
+    });
+
+    it("una entrada empaquetada bajo un padre verificado no es un fallo", () => {
+      const packages = { "": {}, [parent]: verifiedParent, [`${parent}/node_modules/tslib`]: bundled(), [`${parent}/node_modules/@emnapi/core`]: bundled() };
+      expect(integrityOffenders(packages)).toEqual([]);
+    });
+
+    it("tampoco si está empaquetada dentro de otra empaquetada", () => {
+      const packages = { "": {}, [parent]: verifiedParent, [`${parent}/node_modules/a`]: bundled(), [`${parent}/node_modules/a/node_modules/b`]: bundled() };
+      expect(integrityOffenders(packages)).toEqual([]);
+    });
+
+    it("sin inBundle, una entrada sin integrity sigue siendo un fallo", () => {
+      const packages = { "": {}, [parent]: verifiedParent, [`${parent}/node_modules/tslib`]: bundled({ inBundle: false }) };
+      expect(integrityOffenders(packages)).toEqual([`${parent}/node_modules/tslib`]);
+    });
+
+    it("si el padre no tiene integrity, la entrada empaquetada sigue siendo un fallo", () => {
+      const packages = { "": {}, [parent]: { version: "4.3.3", resolved: verifiedParent.resolved }, [`${parent}/node_modules/tslib`]: bundled() };
+      expect(integrityOffenders(packages)).toEqual([parent, `${parent}/node_modules/tslib`]);
+    });
+
+    it("si el padre no está en el lockfile, la entrada empaquetada sigue siendo un fallo", () => {
+      expect(integrityOffenders({ "": {}, [`${parent}/node_modules/tslib`]: bundled() })).toEqual([`${parent}/node_modules/tslib`]);
+    });
+
+    it("un padre que no viene del registro de npm tampoco da cobertura", () => {
+      const packages = { "": {}, [parent]: { ...verifiedParent, resolved: "https://evil.example/x.tgz" }, [`${parent}/node_modules/tslib`]: bundled() };
+      expect(integrityOffenders(packages)).toEqual([parent, `${parent}/node_modules/tslib`]);
+    });
   });
 
   it("la versión del lockfile de cada dependencia directa es la de package.json", () => {
