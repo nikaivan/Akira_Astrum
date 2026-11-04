@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { PRIVATE_HEADERS } from "./lib/auth/private-headers";
 import { buildImageConfig } from "./lib/blog/image-config";
+import { staticSecurityHeaders } from "./lib/security/headers";
 
 const privateHeaders = [...PRIVATE_HEADERS];
 
@@ -8,6 +9,8 @@ const privateHeaders = [...PRIVATE_HEADERS];
 const noStore = [{ key: "Cache-Control", value: "no-store" }];
 
 const nextConfig: NextConfig = {
+  // No anunciar la tecnología del servidor.
+  poweredByHeader: false,
   // next/image solo admite el Storage público del proyecto; sin la variable, ningún host.
   images: buildImageConfig(process.env.NEXT_PUBLIC_SUPABASE_URL),
   experimental: {
@@ -26,6 +29,8 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // Cabeceras de seguridad estáticas en todas las rutas; la CSP, con nonce, la añade proxy.ts.
+      { source: "/(.*)", headers: staticSecurityHeaders(process.env.NODE_ENV === "production") },
       { source: "/login", headers: privateHeaders },
       { source: "/admin/:path*", headers: privateHeaders },
       // Pública e indexable, pero nunca en caché: las fechas viajan en la petición.
