@@ -14,6 +14,9 @@ export function staticSecurityHeaders(isProd: boolean): HeaderRule[] {
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+    // Nuestros recursos (HTML, chunks, iconos) solo los usa nuestro propio sitio; las imágenes del Storage salen por /_next/image.
+    // No se activa Cross-Origin-Embedder-Policy: solo sirve para aislar el origen y exigiría política en todo recurso de terceros.
+    { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
     { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
     // Solo en producción: en local se sirve por http. Sin `preload` hasta decidir el dominio definitivo.
     ...(isProd ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }] : []),
