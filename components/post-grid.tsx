@@ -12,7 +12,7 @@ export function PostGrid({
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {posts.map((post) => (
-        <li key={post.id} className="flex">
+        <li key={post.id} className="flex min-w-0">
           <PostCard post={post} headingLevel={headingLevel} />
         </li>
       ))}
