@@ -290,6 +290,34 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-04 · Fase 2 · Bloque 5: imágenes dentro del contenido Markdown
+- **Objetivo de la sesión:** insertar imágenes en el texto de una entrada desde el editor, reutilizando sin cambios la subida y las políticas del bloque 4, el editor del bloque 3 y el render sanitizado del bloque 2; evitar imágenes huérfanas y fallar cerrado.
+- **Lo que pedí a la IA (resumen):** flujo del botón «Insertar imagen» con alt obligatorio, la opción más simple para las huérfanas y sus límites, y la lista de tests por nivel (alt obligatorio, reglas de archivo, A01, render A05 con payloads, responsivo, fallo simulado, móvil, teclado, axe y e2e en escritorio y móvil). Tests primero y un commit por ciclo tras mi aprobación.
+- **Lo que generó la IA (en una frase):** una acción `uploadPostImage` con su servicio, la sintaxis y la inserción en el cursor (`lib/posts/content-images.ts`), la lógica del cliente que falla cerrado (`insertImage`), el componente `ImageInserter`, la limpieza de huérfanas al editar y eliminar, y los tests de los tres niveles.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`d513c7b`, 36 unitarios en rojo y dos archivos que no compilaban) y la implementación (`5074af4`), más dos correcciones (`62993f2`, `7987c21`). Verde: 1990 unitarios, la integración completa y 228 e2e (32 nuevos).
+- **Quién ejecutó qué:** la IA ejecutó unitarios, `tsc`, lint, `next build` en una copia y un arnés local con un Supabase en memoria y un navegador real (34 comprobaciones en escritorio y móvil); yo ejecuté la integración y los e2e contra el proyecto de test.
+- **Permisos que di para tocar tests aprobados:** ampliar de ocho a nueve las acciones (`actions-authorization.test.ts`, `actions-revalidate.test.ts`, `support.ts`), los mocks de acciones (`components.test.ts`, `cover-field.test.ts`), el `LIKE` del Supabase falso, una línea de mi propio test del botón, la regex del aviso del inserter, y dos correcciones de mi `content-image.spec.ts`.
+- **Errores que detectaron los tests:**
+  - 15 e2e en rojo en el primer `npm run test:e2e`, tres causas:
+    - 12 por un segundo `role="status"` que añadí en el editor: los tests aprobados usan `getByRole("status")` en singular. Lo corregí en la implementación (`aria-live="polite"`), no en esos tests.
+    - 2 de mi propio e2e, que contaba filas con el diálogo abierto y pasaba antes de tiempo.
+    - 1 por colisión de tamaños entre escritorio y móvil, que corren el mismo test a la vez.
+  - Una segunda ejecución dio 1 fallo: restos de ejecuciones anteriores en el bucket de test. Mi e2e dejaba imágenes huérfanas y su aserción contaba archivos por tamaño.
+- **Errores de la IA:**
+  - Puse el módulo de sintaxis en `lib/markdown`, y dos tests de arquitectura aprobados lo impedían.
+  - El Supabase falso trataba `%` de `LIKE` como «sin saltos de línea», distinto de Postgres: la guarda «otra entrada usa la imagen» fallaba con textos de varias líneas.
+  - El esquema pedía la clave `image` siempre, y mi test del botón buscaba `disabled` en una clase de Tailwind.
+  - **Repetí un error que ya estaba escrito en el ADR 0015** (con el diálogo abierto, un recuento de filas pasa en vacío) porque no releí lo documentado antes de escribir un test parecido.
+- **Lo que confirmaron los tests de seguridad:** SVG, HTML, archivo dañado, vacío o de más de 2 MB no se suben ni escriben nada en el texto (también con peticiones forjadas, y el límite de 3 MB de Next corta lo grande); anónimo, usuario sin rol y Auth caído no suben nada (política del bucket incluida); y una imagen externa, `data:` o con `../` escrita a mano no se pinta ni en la vista previa ni en el blog, sin romper el resto del texto.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0017](adr/0017-imagenes-en-el-contenido-accion-de-subida-propia-y-limpieza-acotada-de-huerfanas.md), aceptado por mí el 2026-11-04.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`. `PLAN.md` §5 solo pedía borrar al eliminar una entrada o cambiar su portada; la limpieza se extiende a las imágenes del contenido (ver "Desviaciones respecto al plan").
+- **Paso 4 (refactor y estilo):** una sola regla de «imagen del proyecto» (`projectImageName`) para el blog, la vista previa y la limpieza, y una sola definición del «archivo sin elegir» (`isUnselectedFile`). El estilo del bloque de inserción (fieldset, 44 px, errores y estado) se comprobó con capturas en escritorio y móvil y no necesitó cambios.
+- **Resultado:** inserción de imágenes completa y verificada con datos reales. Pendiente declarado: las imágenes subidas y no guardadas quedan huérfanas, la paginación (límite de 50), `img-src` con `blob:` en la CSP, el registro de eventos del admin y MFA (Fase 3), y «migrar antes de desplegar» y `next build` en la CI (Fase 4).
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -344,6 +372,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-03 | Los e2e del panel usan una sesión de admin por trabajador, con un usuario propio | Supabase Auth limita los inicios de sesión por IP y el test de cerrar sesión revoca las de `users.admin` | Ninguno en producción |
 | 2026-11-04 | `serverActions.bodySizeLimit` pasa a 3 MB (el ADR 0015 decía que no se definía) | El valor por defecto (1 MB) impide subir una portada válida de 2 MiB | Global a todas las acciones; el límite real lo aplican la validación y el bucket. Test de arquitectura ajustado con permiso |
 | 2026-11-04 | La migración de `cover_alt` debe aplicarse en producción antes de desplegar | La lectura pública falla cerrada si falta la columna | Pendiente: aplicarla al cerrar el bloque y añadir «migrar antes de desplegar» a la Fase 4 |
+| 2026-11-04 | La limpieza de imágenes huérfanas se extiende a las del contenido (`PLAN.md` §5 solo citaba borrar la entrada y cambiar la portada) | Las imágenes insertadas en el texto son archivos de la entrada y quedarían sin dueño | Se borran al eliminar la entrada y al quitarlas del texto al guardar, salvo que otra entrada las use; las subidas y no guardadas quedan huérfanas (ADR 0017) |
+| 2026-11-04 | Las Server Actions del panel pasan de ocho a nueve (`uploadPostImage`) | La subida de una imagen del contenido necesita una acción propia que no escribe en la base de datos | Tests que enumeran las acciones ampliados con permiso; la subida no invalida la caché (ADR 0017) |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -368,6 +398,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Muchos fallos de golpe | Pegar la salida completa de los e2e (12 fallos) y pedir agruparlos por causa antes de arreglar nada | Funcionó: eran 5 causas, dos de ellas errores de mis tests y no de la aplicación | Diagnosticar por causas y pedir permiso para tocar tests aprobados con la lista exacta de líneas |
 | Estilo sin ver la pantalla | Montar las pantallas del panel con datos de ejemplo en una copia aislada y sacar capturas en escritorio y móvil | Destapó un fallo del refactor que ningún test detectaba (botones sin `cn`) | Mirar siempre las capturas antes de dar el estilo por bueno |
 | Fallos e2e que no se explican | Construir un arnés local (Supabase en memoria + navegador real) y registrar lo que llega al servidor en lugar de seguir con hipótesis | Funcionó: 3 causas reales que mi hipótesis inicial no vio (nombre `"undefined"`, orden del `FormData`, reinicio de campos) | Reproducir antes de corregir; una hipótesis que no cambia el resultado no era la causa |
+| Lecciones ya escritas | Pedir que, antes de escribir un test parecido a otro que ya dio problemas, se relea el ADR y el ai-log del bloque anterior | Habría evitado repetir el recuento de filas con el diálogo abierto (ya estaba en el ADR 0015) | Releer lo documentado antes de escribir tests de la misma familia |
 
 ## Resumen final para la memoria (se completa al terminar)
 
