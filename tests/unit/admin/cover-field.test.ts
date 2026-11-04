@@ -6,7 +6,7 @@ import { CAT_A, POST_DRAFT, POST_PUBLISHED } from "./support";
 
 vi.mock("@/lib/admin/posts/actions", () => {
   const action = vi.fn();
-  return { createPost: action, updatePost: action, publishPost: action, unpublishPost: action, deletePost: action };
+  return { createPost: action, updatePost: action, publishPost: action, unpublishPost: action, deletePost: action, uploadPostImage: action };
 });
 
 const ORIGIN = "https://proyecto.supabase.co";

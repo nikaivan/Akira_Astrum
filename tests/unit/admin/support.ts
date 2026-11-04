@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { makePng } from "../storage/images";
 
 /**
  * Supabase falso en memoria para los tests unitarios del panel. No comprueba la forma de las llamadas,
@@ -406,5 +407,6 @@ export const VALID_FORMS: Record<string, () => FormData> = {
   createCategory: () => form({ name: "Tierra" }),
   renameCategory: () => form({ id: CAT_A, name: "Fuego vivo" }),
   deleteCategory: () => form({ id: CAT_A, confirm: "eliminar" }),
+  uploadPostImage: () => form({ image: new File([new Uint8Array(makePng())], "imagen.png", { type: "image/png" }), alt: "Luna llena" }),
 };
 export const ACTION_NAMES = Object.keys(VALID_FORMS).sort();
