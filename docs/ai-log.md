@@ -362,6 +362,26 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** CSP estricta con nonce, cabeceras estáticas y HSTS en producción, comprobadas en un navegador real sin violaciones. Pendiente declarado: la política estricta de producción no está automatizada en la CI (el `next build` en la CI y ZAP la cubrirán en las fases 3 E y 4), no hay `report-uri` (el registro de eventos llega con A09) y `preload` de HSTS queda para cuando se decida el dominio.
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-04 · Fase 3 · Sub-bloque B: límites, registro de eventos y fallo cerrado (A07, A09, A10)
+- **Objetivo de la sesión:** límite de intentos en el login y en la calculadora, registro de eventos de seguridad (login fallido o correcto, acceso denegado, subida rechazada) sin datos personales, contraseñas ni fechas, y tests de fallo cerrado.
+- **Decisiones que tomé yo:** el Paso 1 mostró que los límites y el fallo cerrado ya existían y estaban probados, así que el bloque se centró en el registro (A09). Elegí identificar al cliente con un **hash por instancia**, **no** registrar las acciones del admin (solo mi lista) y permitir `console` solo en `lib/security/log.ts` (cambio de un test mío de arquitectura, con mi permiso).
+- **Lo que generó la IA (en una frase):** `lib/security/` (eventos con lista blanca, identificador de cliente y registro que nunca lanza), las llamadas de registro en login, proxy, capa 2, subidas y calculadora, y el helper `recordAccessDenied`.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`a2f54be`): eventos, lista blanca, identificador, destino, eventos por punto, recuperación tras la ventana, barrido de fugas y arquitectura. Implementación en `fdf8156`. Verde: 2251 unitarios, y todos los de integración y e2e, que ejecuté yo.
+- **Quién ejecutó qué:** la IA ejecutó unitarios, `tsc`, lint y un `next build` + `next start` con navegador real (seis intentos de login: cinco `login_failed` y un `rate_limited`, sin correo, contraseña, IP ni consulta de la URL); yo ejecuté los de integración y los e2e contra el proyecto de test.
+- **Permisos que di para tocar tests:** solo el test de arquitectura de `lib/security` (mío, de A).
+- **Errores de la IA:**
+  - Olvidé el import de `recordSecurityEvent` en `service.ts`; `tsc` y 29 tests lo detectaron antes de dar nada por bueno.
+  - Pedí los e2e pero no los de integración, y tuve que corregirlo cuando lo preguntaste: el cambio toca `performLogin` y `inspectCover`, que esas pruebas usan contra Supabase de test.
+  - Dejé el mapeo decisión → motivo de `access_denied` duplicado en el proxy y la capa 2; se detectó al revisar y se extrajo en el Paso 4.
+- **Desviación del plan de tests:** quité el e2e del registro (Playwright no expone la salida del servidor y capturarla exigía tocar `playwright.config.ts`) y quité el ámbito `upload` de `rate_limited` (un cupo agotado se registra solo como `upload_rejected/rate_limited`). Lo cubrí con el build real a mano.
+- **Hallazgo:** el barrido de fallo cerrado (A10) pasó en verde desde el primer momento: confirma que esa parte ya estaba bien cubierta desde los bloques anteriores.
+- **Paso 4 (refactor):** `lib/auth/access-denied.ts` es ahora el único sitio que traduce una decisión de autorización en un evento `access_denied`.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0020](adr/0020-registro-de-eventos-de-seguridad-sin-datos-personales-limites-en-serverless-y-fallo-cerrado.md), aceptado por mí el 2026-11-04 al aprobar esta entrada. Incluye la tabla de qué generaría una alerta y los límites en serverless.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna; solo `node:crypto`.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; las acciones del admin quedan fuera por decisión mía (ver "Desviaciones respecto al plan").
+- **Resultado:** registro de eventos de seguridad estructurado y sin datos personales en los cinco puntos acordados, límites documentados para serverless y fallo cerrado verificado en las 9 acciones del panel. Pendiente declarado: las acciones del admin no se registran, no hay alertas automáticas ni retención definida, el identificador de cliente es por instancia y MFA sigue sin hacerse.
+- **Tiempo aproximado:** no medido.
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -422,6 +442,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-04 | La página de acceso muestra la cabecera y el pie del sitio (sin «Intranet») | No había forma de volver al blog sin los botones del navegador; `design.md` §6 bis exige navegación siempre visible | Tests nuevos de la página de acceso; el resto de sus tests no cambia |
 | 2026-11-04 | Todas las páginas pasan a renderizarse en cada petición (`force-dynamic` en el layout raíz), no solo las del blog | Un nonce de CSP distinto en cada petición solo se puede aplicar al renderizar; las páginas prerenderizadas se quedaban sin nonce y sus scripts se bloqueaban | Sin páginas estáticas ni CDN (ya eran dinámicas casi todas); un test lo exige; [ADR 0019](adr/0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md) |
 | 2026-11-04 | La CSP admite `style-src-attr 'unsafe-inline'` | `next/image` escribe estilos en atributos que `style-src` con nonce bloquea | Excepción acotada a atributos `style`, prevista en el plan de A y fijada por un test |
+| 2026-11-04 | El registro de eventos (A09) no incluye las acciones del admin que cita `PLAN.md` §5 | Lo decidí yo: solo login, acceso denegado, subida rechazada y límite de la calculadora | Pendiente declarado en el [ADR 0020](adr/0020-registro-de-eventos-de-seguridad-sin-datos-personales-limites-en-serverless-y-fallo-cerrado.md) |
+| 2026-11-04 | Los límites de intentos no se rehacen en el sub-bloque B | Ya existían y estaban probados desde los bloques 4 de la Fase 1, 1 y 4 de la Fase 2; solo se añadieron los tests de recuperación y el registro | Los límites en serverless se documentan en el ADR 0020 |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -450,6 +472,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Diseño con tests | Convertir el contraste en un test: leer los tokens de `globals.css` y aplicar la fórmula de WCAG a cada par, en las dos superficies | Funcionó: rojo hasta que existió la noche, y fija la paleta sin discutir «a ojo» | Cuando el criterio es medible (contraste, anchos, 44 px), escribirlo como test antes de diseñar |
 | Mirar el resultado | Capturas en escritorio y móvil con datos de ejemplo, y comparar píxel a píxel antes y después de un refactor | Destapó el glifo ✦ que ningún test detectaba y confirmó que el refactor no cambió nada | Mirar siempre las capturas y comparar antes/después en refactors visuales |
 | Verificación en producción | Probar el build real (`next build` + `next start`) con un navegador y contar los `securitypolicyviolation` | Destapó dos fallos que el e2e en `next dev` no puede ver (páginas estáticas sin nonce y estilos de `next/image`) | Cuando la configuración cambia entre desarrollo y producción, probar el build real antes de dar el bloque por bueno |
+| Qué ejecuta quién | Al pedir la verificación, listar todos los comandos que debe ejecutar el humano (unitarios, integración y e2e) y por qué | Faltó pedir los de integración y lo preguntaste tú | Decir siempre qué suites toca el cambio, con su comando, antes de pedir el visto bueno |
 
 ## Resumen final para la memoria (se completa al terminar)
 
