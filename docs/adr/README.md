@@ -23,3 +23,4 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0016](0016-subida-de-la-portada-validacion-por-contenido-nombre-generado-y-compensacion.md) | Subida de la portada: validación por contenido, nombre generado, compensación, límite de subidas y política del bucket | Aceptado |
 | [0017](0017-imagenes-en-el-contenido-accion-de-subida-propia-y-limpieza-acotada-de-huerfanas.md) | Imágenes dentro del contenido: acción de subida propia, limpieza acotada de huérfanas y sus límites | Aceptado |
 | [0018](0018-identidad-visual-noche-y-marfil-tokens-por-superficie-y-adornos-propios.md) | Identidad visual «noche y marfil»: tokens por superficie, contraste comprobado por test y adornos propios | Aceptado |
+| [0019](0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md) | CSP con nonce por petición, excepción de estilos en atributos y cabeceras estáticas | Aceptado |
