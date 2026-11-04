@@ -29,7 +29,7 @@ export default async function PostPage({ params }: PageProps<"/blog/[slug]">) {
   return (
     <>
       <SiteHeader current="blog" />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12">
         <PostArticle post={result.data} imageOrigin={process.env.NEXT_PUBLIC_SUPABASE_URL} />
       </main>
       <SiteFooter />

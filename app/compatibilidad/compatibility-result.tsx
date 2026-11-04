@@ -21,7 +21,7 @@ function Person({ person, testId }: { person: PersonResult; testId: string }) {
       <span aria-hidden="true" className="text-5xl leading-none text-gold">
         {person.symbol}
       </span>
-      <p className="font-heading text-3xl font-semibold">{person.sign}</p>
+      <p className="font-heading text-4xl font-medium">{person.sign}</p>
       <p className="text-base text-muted-foreground">Elemento: {person.element}</p>
     </div>
   );
@@ -32,8 +32,8 @@ export function CompatibilityResult({ result }: { result: CompatibilityResultDat
   const { Icon, className } = levelStyle(result.level);
 
   return (
-    <section aria-labelledby="result-heading" className="flex flex-col gap-5 rounded-xl border bg-card p-5 shadow-sm sm:p-6">
-      <h2 id="result-heading" className="text-center text-3xl font-semibold">
+    <section aria-labelledby="result-heading" className="flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-soft sm:p-8">
+      <h2 id="result-heading" className="text-center font-heading text-4xl font-light">
         Resultado
       </h2>
       <div className="grid gap-6 sm:grid-cols-2">

@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { HomeHero } from "@/components/home-hero";
+import { Ornament } from "@/components/ornaments";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { buttonVariants } from "@/components/ui/button";
 import { textLinkClass } from "@/components/ui/link-styles";
 import { PostCard } from "@/components/post-card";
 import { PostGrid } from "@/components/post-grid";
@@ -26,47 +27,27 @@ export default async function Home() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-4 py-10">
-        <section className="flex flex-col items-center gap-4 text-center">
-          <h1 className="font-heading text-5xl font-semibold sm:text-6xl">
-            Akira Astrum
-          </h1>
-          <p className="max-w-prose text-lg leading-relaxed text-muted-foreground">
-            Astrología con calma: lecturas serenas y una calculadora de
-            compatibilidad entre signos.
-          </p>
-          <Link
-            href="/compatibilidad"
-            className={cn(buttonVariants(), "h-11 px-5 text-base")}
-          >
-            Calcular compatibilidad
-          </Link>
-        </section>
-        <section
-          aria-labelledby="latest-heading"
-          className="flex flex-col gap-6"
-        >
-          <h2
-            id="latest-heading"
-            className="font-heading text-3xl font-semibold"
-          >
-            Últimas entradas
-          </h2>
-          {featured ? (
-            <PostCard post={featured} headingLevel={3} variant="featured" />
-          ) : (
-            <p className="text-lg text-muted-foreground">
-              Todavía no hay entradas.
-            </p>
-          )}
-          {rest.length > 0 ? <PostGrid posts={rest} headingLevel={3} /> : null}
-          <Link
-            href="/blog"
-            className={cn(textLinkClass, "self-start underline")}
-          >
-            Ver todas las entradas
-          </Link>
-        </section>
+      <main className="flex flex-1 flex-col">
+        <HomeHero />
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-14">
+          <section aria-labelledby="latest-heading" className="flex flex-col gap-8">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <h2 id="latest-heading" className="font-heading text-4xl font-light sm:text-5xl">
+                Últimas entradas
+              </h2>
+              <Ornament />
+            </div>
+            {featured ? (
+              <PostCard post={featured} headingLevel={3} variant="featured" />
+            ) : (
+              <p className="text-center text-lg text-muted-foreground">Todavía no hay entradas.</p>
+            )}
+            {rest.length > 0 ? <PostGrid posts={rest} headingLevel={3} /> : null}
+            <Link href="/blog" className={cn(textLinkClass, "self-center underline")}>
+              Ver todas las entradas
+            </Link>
+          </section>
+        </div>
       </main>
       <SiteFooter />
     </>

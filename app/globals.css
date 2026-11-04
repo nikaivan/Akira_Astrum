@@ -48,33 +48,34 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Identidad «noche y marfil» (ADR 0018). Marfil por defecto; la superficie noche (data-surface="night") redefine los tokens. */
 :root {
-  /* Paleta de docs/design.md. El dorado es solo decorativo o para textos grandes. */
-  --background: #faf7f2;
-  --foreground: #1b1b2f;
-  --card: #fffdf9;
-  --card-foreground: #1b1b2f;
-  --popover: #fffdf9;
-  --popover-foreground: #1b1b2f;
-  --primary: #3b3b98;
+  --background: #fbf8f3;
+  --foreground: #14142b;
+  --card: #fffefb;
+  --card-foreground: #14142b;
+  --popover: #fffefb;
+  --popover-foreground: #14142b;
+  --primary: #2e2e7a;
   --primary-foreground: #ffffff;
-  --secondary: #efeae0;
-  --secondary-foreground: #1b1b2f;
-  --muted: #f1ece3;
-  --muted-foreground: #53536a;
-  --accent: #efeae0;
-  --accent-foreground: #1b1b2f;
-  --gold: #b8860b;
+  --secondary: #f1ece3;
+  --secondary-foreground: #14142b;
+  --muted: #f3eee5;
+  --muted-foreground: #55556b;
+  --accent: #f1ece3;
+  --accent-foreground: #14142b;
+  /* Dorado: solo decorativo o en textos grandes sobre marfil (5,1:1 sobre el fondo). */
+  --gold: #8a6410;
   --destructive: #b42318;
-  --border: #d9d2c3;
+  --border: #e2dacb;
   --input: #8e8878;
-  --ring: #3b3b98;
+  --ring: #2e2e7a;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -83,6 +84,31 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Superficie noche: cabecera, pie, héroe y bandas de título. Los componentes (botones, campos, enlaces, foco) se adaptan solos. */
+[data-surface="night"] {
+  --background: #0b1026;
+  --foreground: #f4efe6;
+  --card: #141c40;
+  --card-foreground: #f4efe6;
+  --popover: #141c40;
+  --popover-foreground: #f4efe6;
+  --primary: #d9b877;
+  --primary-foreground: #0b1026;
+  --secondary: #1b2550;
+  --secondary-foreground: #f4efe6;
+  --muted: #1b2550;
+  --muted-foreground: #b7b5c8;
+  --accent: #1b2550;
+  --accent-foreground: #f4efe6;
+  --gold: #d9b877;
+  --destructive: #ff9b8f;
+  --border: rgb(217 184 119 / 0.28);
+  --input: #9a8250;
+  --ring: #d9b877;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .dark {
@@ -132,20 +158,40 @@
   h1,
   h2,
   h3 {
-    @apply font-heading;
+    @apply font-heading tracking-tight text-balance;
   }
+}
+
+/* Sin transiciones ni animaciones para quien lo pide (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Sombras suaves de las tarjetas (el brillo es un tinte de la tinta, no negro). */
+@utility shadow-soft {
+  box-shadow: 0 1px 2px rgb(20 20 43 / 0.05), 0 12px 32px -18px rgb(20 20 43 / 0.28);
+}
+@utility shadow-soft-lg {
+  box-shadow: 0 2px 4px rgb(20 20 43 / 0.06), 0 22px 48px -20px rgb(20 20 43 / 0.34);
 }
 
 /* Tipografía del contenido de una entrada (docs/design.md §3 y §5): el Markdown ya viene sanitizado y sin clases. */
 @layer components {
   .article-body {
-    @apply flex flex-col gap-4 text-lg leading-relaxed;
+    @apply flex flex-col gap-5 text-lg leading-[1.85];
   }
   .article-body h3 {
-    @apply mt-6 font-heading text-3xl leading-tight font-semibold;
+    @apply mt-8 font-heading text-4xl leading-tight font-medium;
   }
   .article-body h4 {
-    @apply mt-4 font-heading text-2xl leading-tight font-semibold;
+    @apply mt-6 font-heading text-3xl leading-tight font-medium;
   }
   .article-body h5,
   .article-body h6 {
@@ -161,7 +207,7 @@
     @apply text-primary underline underline-offset-4;
   }
   .article-body blockquote {
-    @apply border-l-4 border-gold pl-4 text-muted-foreground italic;
+    @apply border-l-2 border-gold py-1 pl-5 font-heading text-2xl leading-snug text-foreground italic;
   }
   .article-body :not(pre) > code {
     @apply rounded bg-muted px-1.5 py-0.5 text-[0.95em];
@@ -169,7 +215,9 @@
   .article-body pre {
     @apply overflow-x-auto rounded-lg bg-muted p-4 text-base leading-normal;
   }
+  /* Separador: filete dorado que se desvanece en los extremos (sin glifos, que no todas las fuentes tienen). */
   .article-body hr {
-    @apply my-6 border-border;
+    @apply my-8 h-px border-0;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
   }
 }

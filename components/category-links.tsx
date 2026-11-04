@@ -9,7 +9,7 @@ export function CategoryLinks({ categories }: { categories: CategoryRef[] }) {
     <ul className="-ml-2 flex flex-wrap gap-x-1">
       {categories.map((category) => (
         <li key={category.slug}>
-          <Link href={`/categorias/${category.slug}`} className={textLinkClass}>
+          <Link href={`/categorias/${category.slug}`} className={`${textLinkClass} tracking-wide`}>
             {category.name}
           </Link>
         </li>

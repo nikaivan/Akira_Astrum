@@ -110,11 +110,24 @@ test.describe("movimiento reducido y foco", () => {
     const focus = await page.evaluate(() => {
       const element = document.activeElement as HTMLElement;
       const style = getComputedStyle(element);
-      const ring = style.boxShadow !== "none" ? style.boxShadow : style.outlineColor;
-      return { inHeader: Boolean(element.closest("header")), visible: (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== "none", ring };
+      // El anillo es un box-shadow con varias capas (casi todas transparentes) y su color puede venir en oklab: se busca la primera
+      // capa visible y el navegador lo convierte a RGB con un canvas.
+      const layers = style.boxShadow.match(/(?:rgba?|oklab|oklch|color)\([^)]*\)/g) ?? [];
+      const color = layers.find((layer) => !/^rgba\(0, 0, 0, 0\)$/.test(layer)) ?? style.outlineColor;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d");
+      let rgb: number[] = [0, 0, 0];
+      if (context) {
+        context.fillStyle = "#fff"; // sin esto un color transparente dejaría el píxel como estaba
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+        rgb = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+      }
+      return { inHeader: Boolean(element.closest("header")), visible: (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== "none", ring: color, rgb };
     });
     expect(focus.inHeader).toBe(true);
     expect(focus.visible).toBe(true);
-    expect(luminance(parse(focus.ring))).toBeGreaterThan(0.3);
+    expect(luminance(focus.rgb as Rgb), `anillo ${focus.ring}`).toBeGreaterThan(0.3);
   });
 });

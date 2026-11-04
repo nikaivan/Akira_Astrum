@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 // Fuentes servidas desde el propio dominio con next/font (docs/design.md §3).
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-serif" });
+const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["300", "400", "500", "600"], style: ["normal", "italic"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: "Akira Astrum",
