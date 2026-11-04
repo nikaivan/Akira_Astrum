@@ -16,7 +16,7 @@ export function AdminNav({ current }: { current?: Section }) {
 
   return (
     <nav aria-label="Administración" className="border-b bg-card">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-1 px-4 py-1">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-1 safe-x py-1">
         <Link href="/admin" aria-current={active === "posts" ? "page" : undefined} className={cn(linkClass)}>
           Entradas
         </Link>

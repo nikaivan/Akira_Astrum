@@ -1,0 +1,86 @@
+/* Página sin conexión (ADR 0022): autocontenida y con los colores de la superficie noche (docs/design.md §2). */
+:root {
+  --bg: #0B1026;
+  --fg: #F4EFE6;
+  --muted: #B7B5C8;
+  --gold: #D9B877;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.7;
+}
+
+main {
+  width: 100%;
+  max-width: 32rem;
+  text-align: center;
+}
+
+.brand {
+  margin: 0 0 1rem;
+  color: var(--gold);
+  font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+  font-weight: 300;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.rule {
+  display: block;
+  height: 1px;
+  margin: 1.5rem auto;
+  max-width: 12rem;
+  background: linear-gradient(to right, transparent, var(--gold), transparent);
+  opacity: 0.7;
+}
+
+p {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 1px solid var(--gold);
+  border-radius: 0.5rem;
+  color: var(--gold);
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.link:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
