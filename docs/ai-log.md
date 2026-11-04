@@ -382,6 +382,42 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** registro de eventos de seguridad estructurado y sin datos personales en los cinco puntos acordados, límites documentados para serverless y fallo cerrado verificado en las 9 acciones del panel. Pendiente declarado: las acciones del admin no se registran, no hay alertas automáticas ni retención definida, el identificador de cliente es por instancia y MFA sigue sin hacerse.
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-04 · Fase 3 · Sub-bloque C: auditoría de dependencias y cadena de suministro (A03)
+- **Objetivo de la sesión:** `npm ci` y `npm audit`, revisión de las dependencias (nombre exacto, mantenimiento y licencia), lista para el ai-log y propuestas de actualización sin aplicarlas a ciegas.
+- **Decisiones que tomé yo:** mover `shadcn` a `devDependencies`, añadir Dependabot (versiones agrupadas; las actualizaciones de seguridad las activo yo en GitHub) y **solo proponer** las actualizaciones de parche.
+- **Lo que generó la IA (en una frase):** la auditoría con datos reales (`npm audit`, `npm outdated`, `npm view`, licencias y scripts de instalación del lockfile), un test de cadena de suministro, el cambio de ámbito de `shadcn`, `dependabot.yml` y el paso de la CI.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`c2b43f3`): 22 tests que leen `package.json`, el lockfile, `.npmrc` y `.github/` (7 en rojo: ámbito de `shadcn`, Dependabot y CI; 15 fijan lo que ya se cumplía). Implementación en `687f19d`. Verde: 2273 unitarios.
+- **Quién ejecutó qué:** la IA ejecutó el test, `tsc`, lint y, en una copia limpia sin `node_modules`, `npm ci`, `npm audit` y `next build`; la CI repite `npm ci` y los dos `npm audit`.
+- **Permisos que di para tocar tests:** ninguno.
+- **Resultado de `npm audit`:**
+  - Completo: 0 críticas y 0 altas; 19 moderadas y 2 bajas, todas en herramientas de desarrollo; npm solo ofrece como arreglo un retroceso de `eslint` a la versión 4, que no se aplica.
+  - `--omit=dev`: de 6 avisos (4 moderados y 2 bajos, todos por `shadcn`) a **0**.
+- **Revisión de las dependencias de producción (14):**
+
+| Paquete (exacto) | Licencia | Último cambio | Observación |
+|---|---|---|---|
+| `@base-ui/react` 1.9.0 | MIT | 2026-10-09 | Primitivas de UI (equipo MUI) |
+| `@supabase/ssr` 0.12.7, `@supabase/supabase-js` 2.118.0 | MIT | activo | Oficiales; hay 2.119.0 |
+| `class-variance-authority` 0.7.1 | Apache-2.0 | 2024-11 | Estable y pequeña; sin cambios en un año, sin avisos |
+| **`cn` 0.5.2** | MIT | 2026-11-02 | Paquete correcto (`shadcn-ui/cn`, mantenedor `shadcn`, sin dependencias ni scripts). **Riesgo anotado:** el nombre existía desde 2013 y se reutilizó desde la 0.2.0 (2026-09-01), 17 versiones en dos meses, aún 0.x. Se mantiene fijado |
+| `lucide-react` 1.66.0 | ISC | 2026-11-04 | Hay 1.68.0 |
+| `next` 16.4.4, `react` y `react-dom` 19.3.0 | MIT | activo | Hay parches (16.4.5 y 19.3.1) |
+| `react-markdown` 10.1.0, `rehype-sanitize` 6.0.0 | MIT | 2025-03 · 2023-11 | Colectivo `unified`; estables |
+| `tw-animate-css` 1.4.0 | MIT | 2026-02 | Utilidades CSS |
+| `zod` 4.6.7 | MIT | 2026-10-12 | Validación |
+| ~~`shadcn` 4.23.0~~ | MIT | 2026-10-27 | **Movida a desarrollo** (solo aporta CSS al compilar) |
+
+- **Actualizaciones propuestas (no aplicadas):** `next` y `eslint-config-next` 16.4.5, `react` y `react-dom` 19.3.1, `@supabase/supabase-js` 2.119.0, `tailwindcss` y `@tailwindcss/turbopack` 4.3.4, `lucide-react` 1.68.0. No pude leer sus notas de versión, así que no afirmo que corrijan nada. No se proponen `eslint` 10, `@types/node` 26 ni `typescript` 7.
+- **Errores de la IA:**
+  - Al regenerar el lockfile, npm añadió 6 entradas empaquetadas de `@tailwindcss/oxide-wasm32-wasi` sin `integrity`; me di cuenta al comparar el antes y el después y las quité para dejar solo el cambio de ámbito (habrían roto mi propio test de integridad).
+  - Mi `npm audit` inicial listaba el árbol completo; hasta ejecutar `--omit=dev` no vi que los 6 avisos de producción venían de un solo paquete.
+- **Paso 4 (refactor):** ninguno; solo se tocó configuración.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0021](adr/0021-cadena-de-suministro-versiones-exactas-lista-de-dependencias-revisadas-y-auditoria-en-la-ci.md), aceptado por mí el 2026-11-04 al aprobar esta entrada.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna. `shadcn` cambia de ámbito, sin cambiar de versión.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; Dependabot se añade tal como pide §5 y la CI gana un paso (ver "Desviaciones respecto al plan").
+- **Resultado:** árbol de producción sin avisos, Dependabot configurado, auditoría de producción en la CI y una lista de dependencias revisadas que fuerza la revisión de cualquier paquete nuevo. Pendiente declarado: activar las actualizaciones de seguridad de Dependabot, decidir sobre `cn`, aplicar los parches si hay margen antes del despliegue y fijar las acciones de GitHub por hash (hoy van por versión mayor).
+- **Tiempo aproximado:** no medido.
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -400,7 +436,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-02 | `@supabase/supabase-js` 2.118.0, `@supabase/ssr` 0.12.7 | Cliente de Supabase (paso 4) | Repositorios oficiales de Supabase, MIT |
 | 2026-11-02 | `cn` 0.5.2 | Combinar clases de Tailwind; sustituye a `clsx` + `tailwind-merge` en `lib/utils.ts` (commit `b096433`, generado por el CLI de shadcn al aplicar mi configuración) | `shadcn-ui/cn`, mantenedor `shadcn`, MIT. Verificado con `npm view`. **Publicado el mismo día (2026-11-02):** paquete muy reciente |
 | 2026-11-02 | `@base-ui/react` 1.9.0 | Componentes sin estilos de `base-nova` (commit `b096433`) | `mui/base-ui`, MIT |
-| 2026-11-02 | `shadcn` 4.23.0 | CLI como dependencia de ejecución, porque `app/globals.css` importa `shadcn/tailwind.css` (commit `b096433`) | `shadcn-ui/ui`, MIT. Arrastra `@shadcn/registry` y `deepmerge`: 5 avisos nuevos en `npm audit` (2 bajos y 3 moderados) |
+| 2026-11-02 | `shadcn` 4.23.0 | CLI como dependencia de ejecución, porque `app/globals.css` importa `shadcn/tailwind.css` (commit `b096433`) | `shadcn-ui/ui`, MIT. Arrastra `@shadcn/registry` y `deepmerge`: 5 avisos nuevos en `npm audit` (2 bajos y 3 moderados). **Movida a `devDependencies` el 2026-11-04** (sub-bloque C, [ADR 0021](adr/0021-cadena-de-suministro-versiones-exactas-lista-de-dependencias-revisadas-y-auditoria-en-la-ci.md)): `npm audit --omit=dev` pasa a 0 |
 | 2026-11-02 | `zod` 4.6.7 | Validación de la fecha de nacimiento en `lib/astrology/birth-date.ts` (Fase 1, bloque 2) | `colinhacks/zod`, MIT, sin dependencias propias. Versión exacta; `npm audit` sin cambios (0 altas) |
 | 2026-11-02 | `@axe-core/playwright` 4.14.0, `axe-core` 4.14.0 | Tests de accesibilidad en `/login` (Fase 1, bloque 4); solo de desarrollo | `dequelabs/axe-core-npm`, MPL-2.0 (ambas), versión exacta. `@axe-core/playwright` pide `playwright-core >= 1` y trae `axe-core ~4.14.0` |
 | 2026-11-03 | `react-markdown` 10.1.0 | Convierte el Markdown de las entradas en elementos de React, sin HTML crudo (Fase 2, bloque 2) | `remarkjs/react-markdown`, MIT; mantenedores `wooorm`, `johno` y `remcohaszing`. Nombre y repositorio verificados con `npm view`. Versión exacta; peers `react >=18` |
@@ -443,6 +479,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-04 | Todas las páginas pasan a renderizarse en cada petición (`force-dynamic` en el layout raíz), no solo las del blog | Un nonce de CSP distinto en cada petición solo se puede aplicar al renderizar; las páginas prerenderizadas se quedaban sin nonce y sus scripts se bloqueaban | Sin páginas estáticas ni CDN (ya eran dinámicas casi todas); un test lo exige; [ADR 0019](adr/0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md) |
 | 2026-11-04 | La CSP admite `style-src-attr 'unsafe-inline'` | `next/image` escribe estilos en atributos que `style-src` con nonce bloquea | Excepción acotada a atributos `style`, prevista en el plan de A y fijada por un test |
 | 2026-11-04 | El registro de eventos (A09) no incluye las acciones del admin que cita `PLAN.md` §5 | Lo decidí yo: solo login, acceso denegado, subida rechazada y límite de la calculadora | Pendiente declarado en el [ADR 0020](adr/0020-registro-de-eventos-de-seguridad-sin-datos-personales-limites-en-serverless-y-fallo-cerrado.md) |
+| 2026-11-04 | `shadcn` pasa de `dependencies` a `devDependencies` y la CI gana `npm audit --omit=dev` | Lo decidí yo: en ejecución solo se usa su CSS, y arrastraba los 6 avisos de producción | `npm audit --omit=dev` = 0; [ADR 0021](adr/0021-cadena-de-suministro-versiones-exactas-lista-de-dependencias-revisadas-y-auditoria-en-la-ci.md) |
+| 2026-11-04 | Se añade `.github/dependabot.yml` (que `PLAN.md` §5 cita pero no existía) | Lo decidí yo: agrupado y con una PR abierta como máximo; las actualizaciones de seguridad las activo yo en GitHub | Un test lo vigila |
 | 2026-11-04 | Los límites de intentos no se rehacen en el sub-bloque B | Ya existían y estaban probados desde los bloques 4 de la Fase 1, 1 y 4 de la Fase 2; solo se añadieron los tests de recuperación y el registro | Los límites en serverless se documentan en el ADR 0020 |
 
 ## Prompts que funcionaron y que no (opcional)
@@ -473,6 +511,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Mirar el resultado | Capturas en escritorio y móvil con datos de ejemplo, y comparar píxel a píxel antes y después de un refactor | Destapó el glifo ✦ que ningún test detectaba y confirmó que el refactor no cambió nada | Mirar siempre las capturas y comparar antes/después en refactors visuales |
 | Verificación en producción | Probar el build real (`next build` + `next start`) con un navegador y contar los `securitypolicyviolation` | Destapó dos fallos que el e2e en `next dev` no puede ver (páginas estáticas sin nonce y estilos de `next/image`) | Cuando la configuración cambia entre desarrollo y producción, probar el build real antes de dar el bloque por bueno |
 | Qué ejecuta quién | Al pedir la verificación, listar todos los comandos que debe ejecutar el humano (unitarios, integración y e2e) y por qué | Faltó pedir los de integración y lo preguntaste tú | Decir siempre qué suites toca el cambio, con su comando, antes de pedir el visto bueno |
+| Auditar con datos | Ejecutar `npm audit` completo y con `--omit=dev`, `npm outdated`, `npm view` y leer licencias y scripts del lockfile antes de proponer nada | Destapó que los 6 avisos de producción venían de un solo paquete (`shadcn`) y que el arreglo que ofrecía npm era un retroceso | Separar siempre producción y desarrollo al auditar, y comparar el lockfile antes y después de regenerarlo |
 
 ## Resumen final para la memoria (se completa al terminar)
 

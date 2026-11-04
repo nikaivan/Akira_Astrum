@@ -21,3 +21,5 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm audit --audit-level=high
+      # Lo que se despliega no admite ningún aviso, ni siquiera los moderados.
+      - run: npm audit --omit=dev
