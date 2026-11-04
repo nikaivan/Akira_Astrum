@@ -50,8 +50,9 @@ describe.each([
     expect(html).toMatch(/obligatorio/i);
   });
 
-  it("anuncia el resultado en una región de estado y los errores como alerta, sin mostrar nada al empezar", () => {
-    expect(html).toMatch(/<div[^>]*role="status"[^>]*data-slot="image-status"|<div[^>]*data-slot="image-status"[^>]*role="status"/);
+  it("anuncia el resultado en una región viva (sin role=status: el formulario ya tiene el suyo) y los errores como alerta, sin mostrar nada al empezar", () => {
+    expect(html).toMatch(/<div[^>]*aria-live="polite"[^>]*data-slot="image-status"/);
+    expect(html.match(/role="status"/g)?.length ?? 0).toBe(1); // solo el aviso del formulario
     expect(html).not.toMatch(/role="alert"[^>]*data-slot="image-error"/);
   });
 

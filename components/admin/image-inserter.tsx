@@ -104,7 +104,7 @@ export function ImageInserter({ onInsert }: { onInsert: (markdown: string) => vo
           ) : null}
         </div>
       ) : null}
-      <div role="status" data-slot="image-status" className={status.kind === "inserted" ? "text-base font-medium text-primary" : "sr-only"}>
+      <div aria-live="polite" aria-atomic="true" data-slot="image-status" className={status.kind === "inserted" ? "text-base font-medium text-primary" : "sr-only"}>
         {status.kind === "inserted" ? "Imagen insertada." : null}
       </div>
 

@@ -168,6 +168,7 @@ test.describe("criterio de hecho del bloque: imagen en el contenido de punta a p
     await page.goto("/admin");
     await rowOf(page, `${base} Con imagen`).getByRole("button", { name: /^Eliminar/ }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Eliminar definitivamente" }).click();
+    await expect(page.getByRole("alertdialog")).toBeHidden(); // con el diálogo abierto el resto de la página no está en el árbol de accesibilidad
     await expect(rowOf(page, `${base} Con imagen`)).toHaveCount(0);
     expect(await countE2E("posts", base)).toBe(0);
     expect(await e2eObjectServed(second.name)).toBe(false);
@@ -296,27 +297,28 @@ test.describe("A05: lo que se escribe a mano en el Markdown", () => {
 test.describe("seguridad", () => {
   test("A01: la acción de subida capturada y reenviada con la sesión de un usuario sin rol no sube nada", async ({ page, browser, users }) => {
     const base = prefix();
+    const size = (n: number) => n + (isMobile() ? 100 : 0); // escritorio y móvil corren este test a la vez: cada uno reconoce SU archivo por el tamaño
     await asAdmin(page);
     await installCapture(page);
     await newPost(page, { title: `${base} Captura`, slug: `${base}-captura`, content: "Texto." });
-    await insert(page, "Alt", png(pngOfSize(10_103)));
+    await insert(page, "Alt", png(pngOfSize(size(10_103))));
     await expect(imageStatus(page)).toContainText(INSERTED);
     const captured = await lastCaptured(page);
-    expect(await findE2EObjectsBySize(10_103)).toHaveLength(1);
+    expect(await findE2EObjectsBySize(size(10_103))).toHaveLength(1);
 
     // Control positivo: con la sesión del admin el mismo reenvío SÍ sube el archivo, así que el rechazo de abajo significa algo.
-    await replay(page.context().request, captured, { fileField: "_image", file: pngOfSize(10_104) });
-    expect(await findE2EObjectsBySize(10_104)).toHaveLength(1);
+    await replay(page.context().request, captured, { fileField: "_image", file: pngOfSize(size(10_104)) });
+    expect(await findE2EObjectsBySize(size(10_104))).toHaveLength(1);
 
     const baseURL = test.info().project.use.baseURL;
     const intruder = await browser.newContext({ baseURL });
     try {
       await addSessionCookies(intruder, users.user.email, users.user.password);
-      await replay(intruder.request, captured, { fileField: "_image", file: pngOfSize(10_105) });
+      await replay(intruder.request, captured, { fileField: "_image", file: pngOfSize(size(10_105)) });
     } finally {
       await intruder.close();
     }
-    expect(await findE2EObjectsBySize(10_105)).toEqual([]);
+    expect(await findE2EObjectsBySize(size(10_105))).toEqual([]);
   });
 
   test("peticiones forjadas: ni el servidor ni el límite de Next dejan pasar un archivo de más de 2 MB", async ({ page }) => {
