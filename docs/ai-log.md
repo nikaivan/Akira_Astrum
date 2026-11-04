@@ -470,6 +470,8 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
 
+> **Tabla histórica:** recoge la versión con la que se añadió cada paquete. Las versiones actuales están en `package.json` y `package-lock.json`; desde entonces Dependabot ha subido varias (por ejemplo `react` y `react-dom` a 19.3.1 y las acciones de GitHub a `@v7`).
+
 | Fecha | Paquete | Para qué | Comprobado (nombre correcto, mantenimiento, licencia) |
 |---|---|---|---|
 | 2026-11-02 | `next` 16.4.4, `react` 19.3.0, `react-dom` 19.3.0 | Framework (paso 1) | `vercel/next.js` y `react/react`, MIT |

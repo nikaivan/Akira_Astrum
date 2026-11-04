@@ -46,7 +46,7 @@ export function securityEvent(input: unknown, now: () => Date = () => new Date()
   const raw = input as Record<string, unknown>;
 
   const name = typeof raw.event === "string" && Object.hasOwn(VOCABULARY, raw.event) ? raw.event : undefined;
-  const spec = name ? VOCABULARY[name] : undefined;
+  const spec = name ? VOCABULARY[name] : undefined; // eslint-disable-line security/detect-object-injection -- `name` ya está comprobado con Object.hasOwn
   if (!name || !spec) return null;
 
   const reason = oneOf(raw.reason, spec.reason);
