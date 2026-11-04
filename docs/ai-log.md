@@ -341,6 +341,27 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-04 · Fase 3 · Sub-bloque A: cabeceras de seguridad y CSP (A02)
+- **Objetivo de la sesión:** CSP sin `unsafe-inline` ni `unsafe-eval` en scripts (si Next lo permite), `img-src` limitado a `'self'` y al Storage, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS en producción y `X-Powered-By` desactivado, con tests de cabeceras reales y un e2e de violaciones de CSP.
+- **Decisiones que tomé yo:** aprobé el plan (nonce por petición en `proxy.ts`, con la excepción de estilos como salida prevista) y elegí verificar la CSP de producción con un build local en vez de añadir un script e2e de producción.
+- **Lo que generó la IA (en una frase):** `lib/security/csp.ts` y `headers.ts` (puros), el proxy con nonce en todas las páginas conservando la autorización de `/admin`, las cabeceras estáticas en `next.config.ts` y `force-dynamic` en el layout raíz.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`6842f94`): política y nonce, cabeceras, proxy en rutas públicas y `/admin` con fallo cerrado, matcher y e2e de cabeceras reales y de violaciones de CSP. Implementación en `0479a45`, con dos tests míos más (`968cd3c`). Verde: 2152 unitarios y 292 e2e, que ejecuté yo.
+- **Quién ejecutó qué:** la IA ejecutó unitarios, `tsc`, lint, `next build` y `next start` en una copia con navegador real (escritorio y móvil, sin violaciones de CSP); yo ejecuté los e2e contra el proyecto de test.
+- **Permisos que di para tocar tests:** ninguno; no se cambió ningún test aprobado.
+- **Errores que detectó la comprobación del build real (no el e2e, que usa `next dev`):**
+  - `/compatibilidad`, el 404 y dos páginas de `/admin` salían prerenderizadas, así que sus scripts no recibían nonce; en producción el navegador los habría bloqueado y la calculadora no habría funcionado. Corregido con `force-dynamic` en el layout raíz y un test que lo exige.
+  - `next/image` escribe `style="color:transparent"` y `style-src` con nonce lo bloqueaba. Se añadió `style-src-attr 'unsafe-inline'`, la excepción que el plan ya preveía, y un test que fija que es la única.
+- **Errores de la IA:**
+  - Un test de arquitectura mío contenía la cadena «service_role» y rompía el test aprobado que lista dónde puede aparecer; lo corregí en el mío.
+  - Para el e2e de la intranet no incluí la subida real de una imagen (dejaría archivos huérfanos en Storage); lo declaré como desviación del plan de tests y la vista previa `blob:` cubre la parte de CSP.
+  - El arnés local estaba desactualizado (firmas de las consultas y un `playwright.config.ts` suelto) y tuve que sincronizarlo antes de poder construir.
+- **Paso 4 (refactor):** sin cambios; los módulos son pequeños y puros y el proxy ya separa `withCsp`, `secured` y la autorización.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0019](adr/0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md), aceptado por mí el 2026-11-04 al aprobar esta entrada.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; todas las páginas pasan a ser dinámicas (ver "Desviaciones respecto al plan").
+- **Resultado:** CSP estricta con nonce, cabeceras estáticas y HSTS en producción, comprobadas en un navegador real sin violaciones. Pendiente declarado: la política estricta de producción no está automatizada en la CI (el `next build` en la CI y ZAP la cubrirán en las fases 3 E y 4), no hay `report-uri` (el registro de eventos llega con A09) y `preload` de HSTS queda para cuando se decida el dominio.
+- **Tiempo aproximado:** no medido.
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -399,6 +420,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-04 | Las Server Actions del panel pasan de ocho a nueve (`uploadPostImage`) | La subida de una imagen del contenido necesita una acción propia que no escribe en la base de datos | Tests que enumeran las acciones ampliados con permiso; la subida no invalida la caché (ADR 0017) |
 | 2026-11-04 | El pulido visual se hace en un bloque propio y con cambio de paleta, no «al final y con el estilo mínimo» | Lo pedí yo: más aspecto profesional y premium | `docs/design.md` actualizado (paleta de dos superficies, tipografía, wireframes y `theme_color`) y [ADR 0018](adr/0018-identidad-visual-noche-y-marfil-tokens-por-superficie-y-adornos-propios.md); el panel no se rediseña |
 | 2026-11-04 | La página de acceso muestra la cabecera y el pie del sitio (sin «Intranet») | No había forma de volver al blog sin los botones del navegador; `design.md` §6 bis exige navegación siempre visible | Tests nuevos de la página de acceso; el resto de sus tests no cambia |
+| 2026-11-04 | Todas las páginas pasan a renderizarse en cada petición (`force-dynamic` en el layout raíz), no solo las del blog | Un nonce de CSP distinto en cada petición solo se puede aplicar al renderizar; las páginas prerenderizadas se quedaban sin nonce y sus scripts se bloqueaban | Sin páginas estáticas ni CDN (ya eran dinámicas casi todas); un test lo exige; [ADR 0019](adr/0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md) |
+| 2026-11-04 | La CSP admite `style-src-attr 'unsafe-inline'` | `next/image` escribe estilos en atributos que `style-src` con nonce bloquea | Excepción acotada a atributos `style`, prevista en el plan de A y fijada por un test |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -426,6 +449,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Lecciones ya escritas | Pedir que, antes de escribir un test parecido a otro que ya dio problemas, se relea el ADR y el ai-log del bloque anterior | Habría evitado repetir el recuento de filas con el diálogo abierto (ya estaba en el ADR 0015) | Releer lo documentado antes de escribir tests de la misma familia |
 | Diseño con tests | Convertir el contraste en un test: leer los tokens de `globals.css` y aplicar la fórmula de WCAG a cada par, en las dos superficies | Funcionó: rojo hasta que existió la noche, y fija la paleta sin discutir «a ojo» | Cuando el criterio es medible (contraste, anchos, 44 px), escribirlo como test antes de diseñar |
 | Mirar el resultado | Capturas en escritorio y móvil con datos de ejemplo, y comparar píxel a píxel antes y después de un refactor | Destapó el glifo ✦ que ningún test detectaba y confirmó que el refactor no cambió nada | Mirar siempre las capturas y comparar antes/después en refactors visuales |
+| Verificación en producción | Probar el build real (`next build` + `next start`) con un navegador y contar los `securitypolicyviolation` | Destapó dos fallos que el e2e en `next dev` no puede ver (páginas estáticas sin nonce y estilos de `next/image`) | Cuando la configuración cambia entre desarrollo y producción, probar el build real antes de dar el bloque por bueno |
 
 ## Resumen final para la memoria (se completa al terminar)
 

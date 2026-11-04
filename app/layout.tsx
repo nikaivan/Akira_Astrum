@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["300", "400", "500", "600"], style: ["normal", "italic"], variable: "--font-serif" });
 
+// Todas las páginas se renderizan en cada petición: el nonce de la CSP (proxy.ts) solo se puede aplicar así.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Akira Astrum",
   description: "Blog de astrología",
