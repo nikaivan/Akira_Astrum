@@ -57,7 +57,7 @@ export function PostCard({
       >
         <Heading
           className={cn(
-            "font-heading text-3xl leading-tight font-medium",
+            "font-heading text-3xl leading-tight font-medium [overflow-wrap:anywhere]",
             featured && "text-4xl lg:text-5xl",
           )}
         >
