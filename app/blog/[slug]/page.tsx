@@ -4,9 +4,11 @@ import { cache } from "react";
 import { PostArticle } from "@/components/post-article";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { container } from "@/components/ui/surface-styles";
 import { postMetadata } from "@/lib/blog/metadata";
 import { getPublishedPost } from "@/lib/blog/queries";
 import { createPublicClient } from "@/lib/supabase/public";
+import { cn } from "@/lib/utils";
 
 // Siempre dinámica: un borrador o una entrada despublicada no se puede servir desde ninguna copia.
 export const dynamic = "force-dynamic";
@@ -29,7 +31,7 @@ export default async function PostPage({ params }: PageProps<"/blog/[slug]">) {
   return (
     <>
       <SiteHeader current="blog" />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+      <main className={cn(container.reading, "flex-1 py-12")}>
         <PostArticle post={result.data} imageOrigin={process.env.NEXT_PUBLIC_SUPABASE_URL} />
       </main>
       <SiteFooter />

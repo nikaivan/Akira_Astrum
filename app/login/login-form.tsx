@@ -12,13 +12,13 @@ export function LoginForm({ next }: { next: string }) {
     <form action={formAction} noValidate className="flex flex-col gap-4">
       <input type="hidden" name="next" value={next} />
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium">
+        <label htmlFor="email" className="text-base font-medium">
           Correo electrónico
         </label>
         <Input id="email" name="email" type="email" autoComplete="username" required />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium">
+        <label htmlFor="password" className="text-base font-medium">
           Contraseña
         </label>
         <Input
@@ -30,7 +30,7 @@ export function LoginForm({ next }: { next: string }) {
         />
       </div>
       {state ? (
-        <p role="alert" className="text-sm font-medium text-destructive">
+        <p role="alert" className="text-base font-medium text-destructive">
           {state.message}
         </p>
       ) : null}

@@ -23,7 +23,7 @@ export function PostCard({
   return (
     <article
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md",
+        "group/card flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-card shadow-soft motion-safe:transition-all motion-safe:duration-300 hover:shadow-soft-lg motion-safe:hover:-translate-y-0.5",
         featured && "lg:flex-row",
       )}
     >
@@ -43,7 +43,7 @@ export function PostCard({
                 ? "(min-width: 1024px) 480px, 100vw"
                 : "(min-width: 1024px) 320px, (min-width: 640px) 45vw, 100vw"
             }
-            className="object-cover"
+            className="object-cover motion-safe:transition-transform motion-safe:duration-700 group-hover/card:scale-[1.03]"
           />
         </div>
       ) : (
@@ -51,14 +51,14 @@ export function PostCard({
       )}
       <div
         className={cn(
-          "flex flex-1 flex-col gap-2 p-4 sm:p-5",
-          featured && "lg:justify-center lg:gap-3 lg:p-8",
+          "flex flex-1 flex-col gap-3 p-5 sm:p-6",
+          featured && "lg:justify-center lg:gap-4 lg:p-10",
         )}
       >
         <Heading
           className={cn(
-            "font-heading text-2xl leading-tight font-semibold",
-            featured && "text-3xl lg:text-4xl",
+            "font-heading text-3xl leading-tight font-medium",
+            featured && "text-4xl lg:text-5xl",
           )}
         >
           <Link

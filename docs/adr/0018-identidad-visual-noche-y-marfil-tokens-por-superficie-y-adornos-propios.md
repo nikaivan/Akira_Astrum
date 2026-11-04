@@ -1,0 +1,27 @@
+# ADR 0018: Identidad visual «noche y marfil»: tokens por superficie, contraste comprobado por test y adornos propios
+
+- **Estado:** Aceptado (2026-11-04)
+- **Fecha:** 2026-11-04
+
+## Contexto
+El diseño inicial (`docs/design.md`, paleta crema, índigo y dorado) era correcto pero genérico: cabecera y pie planos, titulares sin jerarquía, tarjetas estándar y un icono suelto como marcador de portada. Pedí que la web pública se viera más profesional, elegante y *premium*. `design.md` ya preveía el pulido visual al final, «sin tocar la lógica ni los tests», y exigía que los contrastes se comprobaran con herramienta. Las decisiones de dirección fueron mías: **híbrido noche y marfil**, alcance de **web pública, login y 404/error** (el panel de administración no se rediseña) y **mantener Cormorant Garamond e Inter**.
+
+## Decisión
+- **Dos superficies con los mismos nombres de token.** `:root` define el **marfil** (fondo `#FBF8F3`, texto `#14142B`, tarjeta `#FFFEFB`, primario índigo `#2E2E7A`, dorado oscuro `#8A6410`); el atributo **`data-surface="night"`** redefine esos tokens para la **noche** (fondo `#0B1026`, texto `#F4EFE6`, tarjeta `#141C40`, primario dorado `#D9B877` con texto `#0B1026`, rojo claro `#FF9B8F` para los errores) y además pinta su fondo y su texto. Como los componentes (botones, campos, enlaces, foco) usan tokens, **se adaptan solos** dentro de una superficie noche. Se usa en la cabecera, el pie, el héroe de la portada, las bandas de título, la caja de llamada a la calculadora de las entradas y el marcador de portada.
+- **El panel `/admin` sigue en claro**: hereda los tokens de marfil (algo más sobrios y con radio de 0,5 rem) y no usa nunca `data-surface` (un test lo comprueba).
+- **El contraste se comprueba con la fórmula de WCAG 2, leyendo `globals.css`** (`tests/unit/design/palette.test.ts`): texto principal ≥ 7:1; texto secundario, enlaces, botones y errores ≥ 4,5:1; dorado ≥ 3:1 sobre marfil (solo decorativo o texto grande) y ≥ 4,5:1 sobre noche; bordes de campo y anillo de foco ≥ 3:1, en las dos superficies. Valores medidos: tinta sobre marfil 17,0; secundario sobre marfil 6,8; dorado oscuro sobre marfil 5,1; marfil sobre noche 16,4; secundario sobre noche 9,4; dorado sobre noche 9,9.
+- **Estructura accesible intacta y sin textos nuevos.** Se conservan encabezados (un `h1` por página), puntos de referencia, etiquetas, `data-slot`, `data-testid`, `aria-*` y los textos; no se aplica `text-transform` a texto existente, para que los nombres accesibles no cambien. Los adornos (estrella, filete con estrella, constelaciones) son **SVG y CSS propios, `aria-hidden` y sin recursos externos**, así que la CSP no se toca. Nada de glifos de fuente para adornos: Cormorant no incluye ✦ y salía como un triángulo diminuto; el separador de una entrada es un filete dorado degradado.
+- **Tipografía:** Cormorant Garamond con pesos 300 a 600 y cursiva (titulares grandes y ligeros, cita en cursiva) e Inter para el cuerpo, ambas con `next/font`. Cuerpo de 16 px o más y interlineado de 1,85 en las entradas.
+- **Movimiento:** elevación de tarjetas y botones solo con `motion-safe:`, y una regla global bajo `prefers-reduced-motion: reduce` que deja las transiciones y animaciones en 0,001 ms (WCAG 2.3.3).
+- **Navegación del sitio en todas las páginas públicas, también en el acceso.** La página de login muestra ahora la cabecera (marca, Blog y Compatibilidad) para poder volver sin los botones del navegador (`design.md` §6 bis exige navegación siempre visible). Su pie no lleva el enlace «Intranet», porque apuntaría a sí misma (`SiteFooter` con `intranetLink={false}`).
+- **Piezas compartidas:** `SiteHeader`, `SiteFooter`, `HomeHero`, `PageBanner` y `NightBand` (la banda con constelaciones que comparten las dos últimas), `components/ornaments.tsx` y `components/ui/surface-styles.ts` (`panelClass` y los anchos `container`).
+- **`docs/design.md` se actualiza** para recoger esta identidad (paleta de dos superficies, tipografía, componentes propios, wireframes de portada, categoría, calculadora y acceso, y `theme_color` del manifiesto).
+
+## Consecuencias
+- **Tests:** unitarios de paleta (WCAG), de superficies y de la página de acceso, y e2e de superficies oscuras, menú en el acceso, 320 px, movimiento reducido y foco visible. Los e2e de axe, 44 px, teclado y responsive que ya existían son la regresión principal y siguen en verde.
+- **Mantener `data-surface="night"` y los tokens** es parte del contrato: quien cree una superficie nueva debe usar el atributo, no colores sueltos, y añadir sus pares al test de contraste.
+- **PWA (Fase 3):** el manifiesto usará `theme_color` `#0B1026` (noche) y `background_color` `#FBF8F3` (marfil).
+- **Sin modo oscuro global.** Los tokens `.dark` que dejó shadcn siguen sin usarse; la noche es una superficie, no un tema.
+- **Riesgos y límites:** el dorado de la noche como texto pequeño depende de que nadie cambie esos tokens (lo vigila el test de contraste); las constelaciones son decorativas y fijas; la portada sin imagen es siempre el mismo motivo.
+- **Lecciones:** una fuente puede no traer un glifo (se vio en una captura, no en un test); Tailwind v4 escribe el anillo de foco en `oklab` y tras capas transparentes, así que un test no puede leer «los tres primeros números»; y un arnés local sin datos públicos muestra la página de error, que no es un fallo del diseño.
+- Relacionado: ADR 0004 (Playwright en escritorio y móvil), ADR 0013 y 0014 (blog público) y ADR 0016 y 0017 (imágenes).

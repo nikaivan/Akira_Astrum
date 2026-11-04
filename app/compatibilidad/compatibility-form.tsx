@@ -4,7 +4,9 @@ import { CircleAlert } from "lucide-react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { panelClass } from "@/components/ui/surface-styles";
 import { compatibilityAction } from "@/lib/compatibility/actions";
+import { cn } from "@/lib/utils";
 import { CompatibilityResult } from "./compatibility-result";
 
 type FieldProps = {
@@ -90,7 +92,7 @@ export function CompatibilityForm({ disclaimer }: { disclaimer: string }) {
       }}
       className="flex flex-col gap-6"
     >
-      <div className="flex flex-col gap-5 rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+      <div className={cn(panelClass, "flex flex-col gap-5")}>
         <div className="grid gap-5 sm:grid-cols-2">
           <DateField
             id="birth-a"
@@ -116,7 +118,7 @@ export function CompatibilityForm({ disclaimer }: { disclaimer: string }) {
           id="calculate"
           type="submit"
           disabled={pending}
-          className="h-11 text-base transition-none"
+          className="h-11 text-base shadow-sm transition-none"
         >
           Calcular
         </Button>
