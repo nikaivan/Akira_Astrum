@@ -7,6 +7,7 @@ import { removeCoverFile, uploadCover } from "@/lib/storage/covers";
 import { MAX_IMAGE_BYTES, validateImage, type ImageFailure, type ValidImage } from "@/lib/storage/image-validation";
 import { isValidSlug, slugify, uniqueSlug } from "@/lib/posts/slug";
 import { publish, unpublish, type PostState } from "@/lib/posts/status";
+import { recordSecurityEvent } from "@/lib/security/log";
 import { parsePostDeleteForm, parsePostForm, parsePostIdForm, type PostFieldErrors, type PostInput } from "./schema";
 
 export type PostResult = { ok: true; id: string; slug: string; message: string; warning?: string } | Failure<PostFieldErrors>;
@@ -27,15 +28,25 @@ export type Inspected = InspectedCover | Failure<PostFieldErrors>;
 
 /** Frena el abuso (cada intento cuenta, también los rechazados) y valida el archivo por su contenido antes de tocar Storage. */
 export async function inspectCover(file: File, userId: string, limiter?: RateLimiter): Promise<Inspected> {
+  // Cada rechazo se registra (A09) solo con su motivo: nunca el nombre ni el tipo declarado del archivo.
+  const rejected = (reason: "rate_limited" | "too_large" | "invalid_content") => recordSecurityEvent({ event: "upload_rejected", reason, user: userId });
   if (limiter) {
-    if (limiter.isBlocked(userId)) return fail(messages.UPLOAD_RATE_LIMIT);
+    if (limiter.isBlocked(userId)) {
+      rejected("rate_limited");
+      return fail(messages.UPLOAD_RATE_LIMIT);
+    }
     limiter.recordFailure(userId);
   }
   // Un archivo que ya pesa de más no se lee entero.
-  if (file.size > MAX_IMAGE_BYTES) return fail(messages.VALIDATION_SUMMARY, { cover: messages.COVER_TOO_LARGE });
+  if (file.size > MAX_IMAGE_BYTES) {
+    rejected("too_large");
+    return fail(messages.VALIDATION_SUMMARY, { cover: messages.COVER_TOO_LARGE });
+  }
   const bytes = new Uint8Array(await file.arrayBuffer());
   const check = validateImage(bytes);
-  return check.ok ? { ok: true, bytes, image: check } : fail(messages.VALIDATION_SUMMARY, { cover: COVER_ERRORS[check.reason] });
+  if (check.ok) return { ok: true, bytes, image: check };
+  rejected(check.reason === "too-large" ? "too_large" : "invalid_content");
+  return fail(messages.VALIDATION_SUMMARY, { cover: COVER_ERRORS[check.reason] });
 }
 
 /** Borra los archivos que ya no hacen falta y devuelve el aviso a mostrar si alguno no se pudo (sin ruta no hay nada que borrar). */

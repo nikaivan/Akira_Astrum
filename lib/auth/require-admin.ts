@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { recordAccessDenied } from "./access-denied";
 import { authorizeAdmin, type AdminDecision } from "./authorize";
 import { PRIVATE_HEADERS } from "./private-headers";
 
@@ -25,6 +26,7 @@ async function currentAdmin(): Promise<{ decision: AdminDecision; supabase: Supa
 export async function requireAdmin(): Promise<AdminContext> {
   const { decision, supabase } = await currentAdmin();
   if (decision.status === "unauthenticated") redirect("/login");
+  recordAccessDenied(decision, "page");
   if (decision.status !== "allow" || !supabase) throw new Error("Acceso denegado");
   return { supabase, userId: decision.userId };
 }
@@ -46,6 +48,7 @@ export function withAdminRoute<Args extends unknown[]>(
   return async (request, ...args) => {
     const { decision, supabase } = await currentAdmin();
     if (decision.status === "unauthenticated") return json(401, "No autenticado");
+    recordAccessDenied(decision, "page", new URL(request.url).pathname);
     if (decision.status === "forbidden") return json(403, "Acceso denegado");
     if (decision.status !== "allow" || !supabase) return json(503, "Servicio no disponible");
     return handler(request, { supabase, userId: decision.userId }, ...args);

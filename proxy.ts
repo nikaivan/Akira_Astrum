@@ -1,9 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { recordAccessDenied } from "@/lib/auth/access-denied";
 import { authorizeAdmin, type AdminDecision } from "@/lib/auth/authorize";
 import { adminResponse } from "@/lib/auth/proxy-response";
-import { authCookieOptions, enforceSessionCookieOptions } from "@/lib/supabase/cookie-options";
 import { buildCsp, generateNonce } from "@/lib/security/csp";
+import { authCookieOptions, enforceSessionCookieOptions } from "@/lib/supabase/cookie-options";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 /** Política de esta petición; el nonce se reenvía a la renderización para que Next marque sus scripts y estilos. */
@@ -50,6 +51,8 @@ export async function proxy(request: NextRequest) {
   } catch {
     decision = { status: "error" };
   }
+
+  recordAccessDenied(decision, "proxy", request.nextUrl.pathname);
 
   return secured(adminResponse(decision, request, passthrough), policy);
 }
