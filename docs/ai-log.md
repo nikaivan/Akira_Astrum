@@ -418,6 +418,33 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** árbol de producción sin avisos, Dependabot configurado, auditoría de producción en la CI y una lista de dependencias revisadas que fuerza la revisión de cualquier paquete nuevo. Pendiente declarado: activar las actualizaciones de seguridad de Dependabot, decidir sobre `cn`, aplicar los parches si hay margen antes del despliegue y fijar las acciones de GitHub por hash (hoy van por versión mayor).
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-04 · Fase 3 · Sub-bloque D: PWA mínima (manifiesto, iconos, service worker y página sin conexión)
+- **Objetivo de la sesión:** una aplicación instalable (manifiesto, iconos con uno enmascarable, `theme_color` noche, `standalone`, `viewport-fit=cover` y zonas seguras) con un service worker que **nunca** guarda `/admin`, `/login`, respuestas de Server Actions ni peticiones autenticadas, y una página `/offline` sencilla; con plan B (solo manifiesto) si se complicaba.
+- **Decisiones que tomé yo:** página `/offline` **autocontenida** (sin React), icono con un **pentagrama dorado** sobre noche (en lugar de la estrella propuesta) y, durante el bloque, permiso para cambiar dos tests míos ya aprobados.
+- **Lo que generó la IA (en una frase):** `app/manifest.ts`, `public/sw.js`, `/offline` con su CSS, un script reproducible de iconos, el registro del service worker, `viewport` y las utilidades de zona segura, más sus tests unitarios (el `sw.js` real se ejecuta en un entorno simulado) y e2e.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`332ae40`): manifiesto, service worker (23 peticiones que no gestiona, navegaciones con y sin red, versionado), `/offline`, registro, viewport y e2e. Implementación en `baa5eb5`, con una corrección de dos de mis tests (`25f39d4`). Verde: 2363 unitarios, y todos los de integración y e2e, que ejecuté yo.
+- **Quién ejecutó qué:** la IA ejecutó unitarios, `tsc`, lint y, con `next build` y `next start` en un Chromium real, manifiesto, cabeceras, registro, corte de red (`/blog` muestra «Sin conexión»; `/admin` y `/login` fallan con error de red), contenido de la caché (exactamente los 5 archivos precacheados) y capturas de `/offline` en móvil y escritorio; yo ejecuté la integración y los e2e contra el proyecto de test.
+- **Permisos que di para tocar tests:** dos cambios en mis propios tests de la PWA: la ruta de importación del módulo de registro y la lectura del CSS con `fs`.
+- **Errores de la IA:**
+  - Nombré el módulo `lib/pwa/register.ts` y el test de arquitectura de autenticación prohíbe esa palabra en `app/` y `lib/`; lo detecté al ejecutar toda la suite. Se renombró a `sw-registration.ts`.
+  - Mi test leía `globals.css` con `import.meta.glob(?raw)`, que devuelve un archivo vacío: **una lección ya documentada en el rediseño que volví a tropezar** (como con el ADR 0015 antes), por no releerla.
+  - Mi expresión `safe-` no coincidía con mis propias clases `pt-safe`; renombré las utilidades a `safe-top`, `safe-bottom` y `safe-x`.
+  - El `favicon.ico` rompía el `next build` porque Next exige PNG con canal alfa y Chromium entregaba RGB; escribí un codificador RGBA con `zlib`.
+  - El caso «otro protocolo» de mi test del service worker construye mal su URL y pasa por la guarda de URL no analizable, no por la comprobación de protocolo; queda anotado, sin cambiar.
+- **Riesgo despejado antes de pedirte el e2e:** dudaba de que `context.setOffline` de Playwright afectara al service worker; lo comprobé con el navegador real y sí lo hace, así que no hizo falta el plan B.
+- **Incidencia fuera de plan (PR #26 de Dependabot):** la PR semanal agrupó un parche de `react` con saltos mayores (`typescript` 7, `eslint` 10, `@types/node` 26) y la CI cayó en `lint`: `typescript-eslint` no soporta TypeScript 7. Fue un fallo mío de configuración en el sub-bloque C (agrupé con `patterns: ["*"]`). Se corrigió con un test nuevo y un `dependabot.yml` que agrupa solo menores y parches e ignora los saltos mayores de npm (`c6bd1f8` y `5fb4d23`).
+- **Paso 4 (refactor):** ninguno; los módulos son pequeños y las utilidades se usan de forma uniforme.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0022](adr/0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md), aceptado por mí el 2026-11-04 al aprobar esta entrada.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna; el script de iconos usa el Playwright y el Chromium que ya había, y `node:zlib`.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; el service worker se registra también en desarrollo para poder probarlo en el e2e (ver "Desviaciones respecto al plan").
+- **Instrucciones de instalación para el README (Fase 4):**
+  - **Android (Chrome):** menú ⋮ → «Instalar aplicación» (o «Añadir a pantalla de inicio»).
+  - **iPhone y iPad (Safari):** botón Compartir → «Añadir a pantalla de inicio».
+  - **Escritorio (Chrome o Edge):** icono de instalar en la barra de direcciones, o menú → «Instalar Akira Astrum».
+  - Sin conexión, las páginas públicas muestran «Sin conexión»; la intranet nunca se guarda ni se abre sin red.
+- **Resultado:** la web se instala como aplicación, con el color de tema noche, icono propio y una página sin conexión; el service worker no guarda contenido y deja la intranet y el acceso fuera de su alcance. Pendiente declarado: la comprobación manual tras el despliegue (versión nueva de la caché sustituye a la anterior), subir el número de versión de la caché si cambia la lista de precaché, y el README de instalación (Fase 4).
+- **Tiempo aproximado:** no medido.
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -481,6 +508,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-04 | El registro de eventos (A09) no incluye las acciones del admin que cita `PLAN.md` §5 | Lo decidí yo: solo login, acceso denegado, subida rechazada y límite de la calculadora | Pendiente declarado en el [ADR 0020](adr/0020-registro-de-eventos-de-seguridad-sin-datos-personales-limites-en-serverless-y-fallo-cerrado.md) |
 | 2026-11-04 | `shadcn` pasa de `dependencies` a `devDependencies` y la CI gana `npm audit --omit=dev` | Lo decidí yo: en ejecución solo se usa su CSS, y arrastraba los 6 avisos de producción | `npm audit --omit=dev` = 0; [ADR 0021](adr/0021-cadena-de-suministro-versiones-exactas-lista-de-dependencias-revisadas-y-auditoria-en-la-ci.md) |
 | 2026-11-04 | Se añade `.github/dependabot.yml` (que `PLAN.md` §5 cita pero no existía) | Lo decidí yo: agrupado y con una PR abierta como máximo; las actualizaciones de seguridad las activo yo en GitHub | Un test lo vigila |
+| 2026-11-04 | El service worker se registra también en desarrollo, no solo en producción | El e2e usa `next dev` y no podría probar el modo sin conexión; su `fetch` es un paso directo y no toca `/admin` ni `/login` | Las dos suites siguen en verde; [ADR 0022](adr/0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md) |
+| 2026-11-04 | El `dependabot.yml` pasa a agrupar solo menores y parches e ignorar los saltos mayores de npm | La PR #26 mezcló un parche de `react` con TypeScript 7, que `typescript-eslint` no soporta, y rompió la CI: fallo mío del sub-bloque C | Test nuevo (`dependabot-majors.test.ts`); los saltos mayores se hacen a mano |
 | 2026-11-04 | Los límites de intentos no se rehacen en el sub-bloque B | Ya existían y estaban probados desde los bloques 4 de la Fase 1, 1 y 4 de la Fase 2; solo se añadieron los tests de recuperación y el registro | Los límites en serverless se documentan en el ADR 0020 |
 
 ## Prompts que funcionaron y que no (opcional)
@@ -512,6 +541,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Verificación en producción | Probar el build real (`next build` + `next start`) con un navegador y contar los `securitypolicyviolation` | Destapó dos fallos que el e2e en `next dev` no puede ver (páginas estáticas sin nonce y estilos de `next/image`) | Cuando la configuración cambia entre desarrollo y producción, probar el build real antes de dar el bloque por bueno |
 | Qué ejecuta quién | Al pedir la verificación, listar todos los comandos que debe ejecutar el humano (unitarios, integración y e2e) y por qué | Faltó pedir los de integración y lo preguntaste tú | Decir siempre qué suites toca el cambio, con su comando, antes de pedir el visto bueno |
 | Auditar con datos | Ejecutar `npm audit` completo y con `--omit=dev`, `npm outdated`, `npm view` y leer licencias y scripts del lockfile antes de proponer nada | Destapó que los 6 avisos de producción venían de un solo paquete (`shadcn`) y que el arreglo que ofrecía npm era un retroceso | Separar siempre producción y desarrollo al auditar, y comparar el lockfile antes y después de regenerarlo |
+| Probar con el navegador antes de pedir el e2e | Montar la PWA con `next build` y `next start` y recorrer el corte de red, la caché y las rutas privadas en un Chromium real | Despejó la duda de si `setOffline` afecta al service worker y destapó el fallo del `.ico` sin alfa | Cuando una prueba depende de un comportamiento del navegador, verificarlo a mano antes de dar el e2e por bueno |
+| Releer las lecciones ya escritas | Antes de escribir un test que lee CSS o que añade archivos con nombres genéricos, releer el ADR y el ai-log de los bloques anteriores | Me costó dos correcciones (`?raw` vacío y el nombre `register`) que ya estaban documentadas | Revisar `docs/ai-log.md` y los tests de arquitectura antes de nombrar archivos y leer recursos en un test |
 
 ## Resumen final para la memoria (se completa al terminar)
 

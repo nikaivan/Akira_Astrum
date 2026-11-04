@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
     return [
       // Cabeceras de seguridad estáticas en todas las rutas; la CSP, con nonce, la añade proxy.ts.
       { source: "/(.*)", headers: staticSecurityHeaders(process.env.NODE_ENV === "production") },
+      // El service worker se revalida siempre: una versión nueva debe llegar al navegador sin esperar a una caché larga.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "Content-Type", value: "application/javascript; charset=utf-8" }] },
       { source: "/login", headers: privateHeaders },
       { source: "/admin/:path*", headers: privateHeaders },
       // Pública e indexable, pero nunca en caché: las fechas viajan en la petición.

@@ -1,5 +1,7 @@
-# Actualizaciones de dependencias (A03). Una sola PR semanal por ecosistema, para no llenar el repositorio.
-# Las actualizaciones de seguridad de Dependabot se activan en Settings → Code security del repositorio.
+# Actualizaciones de dependencias (A03; ADR 0021). Una sola PR semanal por ecosistema, solo con menores y parches.
+# Los saltos mayores de npm se ignoran y se hacen a mano cuando el ecosistema los soporte (la PR #26 mezcló un parche
+# de react con TypeScript 7, que typescript-eslint no admite, y rompió la CI). Las acciones de GitHub sí reciben sus
+# saltos mayores, cada uno en su propia PR. Las actualizaciones de seguridad se activan en Settings → Code security.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,7 +11,10 @@ updates:
     open-pull-requests-limit: 1
     groups:
       npm-updates:
-        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -17,4 +22,4 @@ updates:
     open-pull-requests-limit: 1
     groups:
       actions-updates:
-        patterns: ["*"]
+        update-types: ["minor", "patch"]

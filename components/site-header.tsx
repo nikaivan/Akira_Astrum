@@ -13,7 +13,7 @@ export function SiteHeader({
   current?: "blog" | "compatibility";
 }) {
   return (
-    <header data-surface="night" className="border-b">
+    <header data-surface="night" className="border-b safe-top">
       <div className={cn(container.wide, "flex flex-wrap items-center justify-between gap-x-4 py-1")}>
         <Link
           href="/"
