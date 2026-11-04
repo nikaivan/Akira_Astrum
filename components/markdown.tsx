@@ -2,8 +2,8 @@ import Image from "next/image";
 import type { ComponentProps, ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeSanitize, { type Options } from "rehype-sanitize";
-import { isGeneratedImageName } from "@/lib/blog/cover";
-import { httpsOrigin, STORAGE_IMAGE_PATH } from "@/lib/blog/image-config";
+import { projectImageName } from "@/lib/blog/cover";
+import { httpsOrigin } from "@/lib/blog/image-config";
 import { sanitizeSchema } from "@/lib/markdown/sanitize-schema";
 
 const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
@@ -21,14 +21,6 @@ function parseAbsolute(value: string | undefined): URL | null {
 function safeLink(href: string | undefined): URL | null {
   const url = parseAbsolute(href);
   return url && SAFE_LINK_PROTOCOLS.has(url.protocol) ? url : null;
-}
-
-/** Solo imágenes generadas del bucket público del proyecto, sin usuario, puerto ni consulta. */
-function isProjectImage(src: string | undefined, origin: string): boolean {
-  const url = parseAbsolute(src);
-  if (!url || url.origin !== origin || url.username || url.password || url.search || url.hash) return false;
-  if (!url.pathname.startsWith(STORAGE_IMAGE_PATH)) return false;
-  return isGeneratedImageName(url.pathname.slice(STORAGE_IMAGE_PATH.length));
 }
 
 function Anchor({ href, children }: { href?: string; children?: ReactNode }) {
@@ -76,7 +68,7 @@ export function Markdown({ source, imageOrigin }: Props) {
     h6: heading("h6"),
     img({ src, alt }: ComponentProps<"img">) {
       const value = typeof src === "string" ? src : undefined;
-      if (!origin || !value || !isProjectImage(value, origin)) return null; // cualquier otra imagen se descarta
+      if (!value || projectImageName(value, origin) === null) return null; // cualquier otra imagen se descarta
       return (
         <span className="relative my-4 block aspect-video w-full">
           <Image src={value} alt={alt ?? ""} fill sizes="(min-width: 768px) 700px, 100vw" className="object-contain" />

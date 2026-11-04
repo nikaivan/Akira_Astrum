@@ -7,7 +7,7 @@ import { coverImageUrl } from "@/lib/blog/cover";
 import { httpsOrigin } from "@/lib/blog/image-config";
 import { imageMarkdown } from "@/lib/posts/content-images";
 import { removeCoverFile, uploadCover } from "@/lib/storage/covers";
-import { POST_LIMITS } from "./schema";
+import { isUnselectedFile, POST_LIMITS } from "./schema";
 import { inspectCover } from "./service";
 
 /**
@@ -21,8 +21,6 @@ export type ImageResult = { ok: true; url: string; alt: string; markdown: string
 type Context = { supabase: SupabaseClient; userId: string; input: unknown; limiter?: RateLimiter; storageOrigin?: string | null };
 type ImageForm = { image: File; alt: string };
 
-// Un campo de archivo sin selección llega como un archivo vacío sin nombre real (ver el esquema de la portada).
-const unselected = (value: unknown) => !(value instanceof File) || (value.size === 0 && (value.name === "" || value.name === "undefined"));
 const CONTROL = /[\u0000-\u001f\u007f]/;
 
 const FORM = z.strictObject({ image: z.unknown().optional(), alt: z.unknown().optional() });
@@ -37,7 +35,7 @@ function parseImageForm(input: unknown): Parsed<ImageForm, ImageFieldErrors> {
   if (alt === "") errors.alt = messages.IMAGE_ALT_REQUIRED;
   else if (alt.length > POST_LIMITS.coverAlt || CONTROL.test(alt)) errors.alt = messages.IMAGE_ALT_INVALID;
   const image = parsed.data.image;
-  if (unselected(image)) errors.image = messages.IMAGE_FILE_REQUIRED;
+  if (!(image instanceof File) || isUnselectedFile(image)) errors.image = messages.IMAGE_FILE_REQUIRED;
   if (errors.alt || errors.image) return { success: false, errors };
   return { success: true, data: { image: image as File, alt } };
 }

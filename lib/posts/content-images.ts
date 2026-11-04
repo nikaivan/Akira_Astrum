@@ -1,4 +1,4 @@
-import { isGeneratedImageName } from "@/lib/blog/cover";
+import { GENERATED_NAME_SOURCE } from "@/lib/blog/cover";
 import { httpsOrigin, STORAGE_IMAGE_PATH } from "@/lib/blog/image-config";
 
 /** Sintaxis de las imágenes del contenido de una entrada: cómo se escriben, cuáles son del proyecto y dónde se insertan. */
@@ -23,10 +23,10 @@ export function projectImageNames(markdown: string, origin: string | null | unde
   const base = httpsOrigin(origin);
   if (!base) return [];
   const names = new Set<string>();
-  // Seguro: el prefijo está escapado y el resto es de longitud fija.
+  // Seguro: el prefijo está escapado y el nombre generado tiene longitud fija.
   // eslint-disable-next-line security/detect-non-literal-regexp
-  const pattern = new RegExp(`${escapeRegExp(`${base}${STORAGE_IMAGE_PATH}`)}([0-9a-f-]{36}\\.(?:jpg|png|webp))`, "g");
-  for (const match of markdown.matchAll(pattern)) if (isGeneratedImageName(match[1])) names.add(match[1]);
+  const pattern = new RegExp(`${escapeRegExp(`${base}${STORAGE_IMAGE_PATH}`)}(${GENERATED_NAME_SOURCE})`, "g");
+  for (const match of markdown.matchAll(pattern)) names.add(match[1]);
   return [...names];
 }
 
