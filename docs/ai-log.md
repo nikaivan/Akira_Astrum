@@ -571,8 +571,39 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 
 ## Resumen final para la memoria (se completa al terminar)
 
+> **BORRADOR redactado por la IA a partir de las entradas anteriores de este registro, para que lo corrija el arquitecto.** Solo recoge lo que ya consta arriba. Las cifras son las del cierre de la Fase 3 (2441 tests unitarios; integración y e2e en verde, ejecutados por el arquitecto). Lo que esté entre corchetes lo tiene que completar o confirmar el autor. No se ha incluido nada de la Fase 4 (despliegue y vídeo) porque aún no consta.
+
 - **Qué hizo la IA bien:**
+  - Trabajó con un ciclo fijo por sub-bloque: plan, tests en rojo, mínimo en verde y refactor. Cada paso esperó la aprobación del arquitecto, y los commits fueron uno por ciclo.
+  - Convirtió los requisitos en tests ejecutables y fijó decisiones en 23 ADR. Por ejemplo, la paleta se mide con la fórmula de contraste de WCAG, las 66 parejas de signos salen de una tabla fuente de verdad y las rutas del checklist OWASP las vigila un test.
+  - Verificó en producción simulada cosas que los tests en `next dev` no ven: `next build` y `next start` en un Chromium real destaparon páginas estáticas sin nonce de CSP, los estilos de `next/image` y el `favicon.ico` sin canal alfa.
+  - En seguridad, aplicó defensa en profundidad (RLS, comprobación del rol en el servidor en cada capa y falla cerrada), CSP con nonce, registro de eventos sin datos personales, control de la cadena de suministro y un escaneo ZAP cuyos resultados se documentaron con su tratamiento.
+  - Rompió su propia implementación a propósito para comprobar que los tests fallaban, y ejecutó arneses locales (Supabase en memoria más navegador real) para reproducir fallos antes de corregirlos.
+
 - **Dónde falló o necesitó corrección:**
+  - Repitió errores ya documentados: leyó CSS con `?raw` (devuelve un archivo vacío) y nombró un módulo `register`, que el test de arquitectura de autenticación prohíbe. La lección era releer el `ai-log` antes de escribir tests de la misma familia.
+  - Asumió formatos y entornos sin comprobarlos con los datos reales del usuario: el script de ZAP salía en silencio con un `.env.test.local` con espacios alrededor del `=`, y no lo detectó ninguna prueba hasta que lo ejecutó el arquitecto.
+  - Dejó cosas sin cerrar: no pidió ejecutar los tests de integración hasta que el arquitecto lo preguntó, y se olvidó un import en `service.ts` (lo cazó `tsc`).
+  - Configuró mal Dependabot (agrupó un parche de React con saltos mayores de TypeScript, ESLint y `@types/node`, y la CI cayó en `lint`), y dio un consejo equivocado sobre cómo tratar esa PR.
+  - Algunas hipótesis iniciales eran incorrectas (por ejemplo, esperar que el recuento de ZAP bajara tras añadir una cabecera, cuando ZAP cuenta reglas y no alertas).
+  - Hubo cambios sobre tests ya aprobados, siempre con permiso expreso del arquitecto y con la lista exacta de líneas.
+
 - **Qué aportó el humano como arquitecto:**
+  - Fijó las reglas del proceso: TDD estricto, roles humano-IA, un commit por ciclo solo tras su aprobación, y ninguna lectura de `.env*`.
+  - Decidió en los puntos ambiguos: página sin conexión autocontenida, un pentagrama dorado como icono, sesión de 8 horas, limitador en memoria, `service_role` solo en el soporte de integración, registro de eventos sin las acciones del admin, `shadcn` solo como dependencia de desarrollo y el cambio de paleta a «noche y marfil».
+  - Aprobó cada ADR, rechazó o corrigió propuestas, y declaró los pendientes (MFA, alertas automáticas, registro de acciones del admin, fijar Actions por hash, paginación).
+  - Preparó y administró la infraestructura: dos proyectos de Supabase (producción y test), esquema de producción, primer administrador, desactivación del registro público y configuración de Dependabot en GitHub.
+
 - **Qué aportó el humano como tester:**
+  - Ejecutó los tests de integración contra el proyecto real de Supabase y los e2e en escritorio y móvil, que la IA no puede ejecutar en su entorno.
+  - Instaló Docker en su Mac y ejecutó ZAP dos veces, pegando los resultados y las rutas de cada alerta.
+  - Detectó fallos que las suites no veían: faltaban los tests de integración en una verificación, el login rechazaba credenciales reales porque el esquema de producción estaba vacío, y la rama ya estaba fusionada.
+  - Gestionó las PR y la CI: avisó de los fallos de Dependabot y comprobó que la CI estaba en verde antes de fusionar.
+  - [Pendiente de completar: comprobación manual en móvil real y tras el despliegue.]
+
 - **Qué haría diferente la próxima vez:**
+  - Probar desde el principio con los datos y el formato reales del usuario, y no con ejemplos inventados.
+  - Incluir `next build` y la ejecución de la integración y los e2e en cada cierre de bloque, listando siempre los comandos.
+  - Releer los ADR y esta bitácora antes de escribir tests parecidos a otros que ya dieron problemas.
+  - Poner la configuración de CI y de Dependabot, y las pruebas de producción simulada, en las primeras fases y no al final.
+  - [Reflexión del autor sobre el reparto de tiempo y el coste de la disciplina TDD: por completar.]
