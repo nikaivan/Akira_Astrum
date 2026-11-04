@@ -34,7 +34,10 @@ const prefix = () => {
   prefixes.push(value);
   return value;
 };
-test.afterEach(async () => {
+test.afterEach(async ({ page }) => {
+  // Las imágenes subidas desde el editor sin guardar la entrada no cuelgan de ninguna fila: se recogen del texto que quedó en pantalla.
+  const text = await page.locator("#post-content").inputValue({ timeout: 500 }).catch(() => "");
+  for (const match of text.matchAll(/post-images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpg|webp))/g)) leftovers.push(match[1]);
   for (const value of prefixes.splice(0)) await deleteE2EByPrefix(value);
   await removeE2EObjects(leftovers.splice(0));
 });
@@ -298,17 +301,24 @@ test.describe("seguridad", () => {
   test("A01: la acción de subida capturada y reenviada con la sesión de un usuario sin rol no sube nada", async ({ page, browser, users }) => {
     const base = prefix();
     const size = (n: number) => n + (isMobile() ? 100 : 0); // escritorio y móvil corren este test a la vez: cada uno reconoce SU archivo por el tamaño
+    // El bucket puede conservar restos de ejecuciones anteriores del mismo tamaño: solo cuentan los archivos NUEVOS.
+    const before = { original: await findE2EObjectsBySize(size(10_103)), control: await findE2EObjectsBySize(size(10_104)), intruder: await findE2EObjectsBySize(size(10_105)) };
+    const created = async (name: keyof typeof before, bytes: number) => {
+      const fresh = (await findE2EObjectsBySize(bytes)).filter((object) => !before[name].includes(object)); // eslint-disable-line security/detect-object-injection -- claves cerradas
+      leftovers.push(...fresh);
+      return fresh;
+    };
     await asAdmin(page);
     await installCapture(page);
     await newPost(page, { title: `${base} Captura`, slug: `${base}-captura`, content: "Texto." });
     await insert(page, "Alt", png(pngOfSize(size(10_103))));
     await expect(imageStatus(page)).toContainText(INSERTED);
     const captured = await lastCaptured(page);
-    expect(await findE2EObjectsBySize(size(10_103))).toHaveLength(1);
+    expect(await created("original", size(10_103))).toHaveLength(1);
 
     // Control positivo: con la sesión del admin el mismo reenvío SÍ sube el archivo, así que el rechazo de abajo significa algo.
     await replay(page.context().request, captured, { fileField: "_image", file: pngOfSize(size(10_104)) });
-    expect(await findE2EObjectsBySize(size(10_104))).toHaveLength(1);
+    expect(await created("control", size(10_104))).toHaveLength(1);
 
     const baseURL = test.info().project.use.baseURL;
     const intruder = await browser.newContext({ baseURL });
@@ -318,7 +328,7 @@ test.describe("seguridad", () => {
     } finally {
       await intruder.close();
     }
-    expect(await findE2EObjectsBySize(size(10_105))).toEqual([]);
+    expect(await created("intruder", size(10_105))).toEqual([]);
   });
 
   test("peticiones forjadas: ni el servidor ni el límite de Next dejan pasar un archivo de más de 2 MB", async ({ page }) => {
