@@ -20,6 +20,7 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 | El rol admin se comprueba en el servidor en cada capa (proxy, páginas y Server Actions) | ✅ Hecho | `proxy.ts`, `lib/auth/require-admin.ts`, `lib/auth/authorize.ts`, `tests/unit/auth/authorize.test.ts`, `tests/unit/auth/require-admin.test.ts`, `tests/unit/admin/actions-authorization.test.ts`, `tests/integration/authorize-real.test.ts` | — | `npm test` |
 | Sin sesión se redirige a `/login` y sin rol admin se recibe un 403 | ✅ Hecho | `tests/e2e/auth.spec.ts`, `tests/e2e/admin.spec.ts` | — | `npm run test:e2e -- tests/e2e/auth.spec.ts` |
 | Storage: solo el admin sube y borra; la lectura es pública | ✅ Hecho | `supabase/migrations/20261102230200_storage.sql`, `tests/integration/storage.test.ts` | — | `npm run test:integration` |
+| Las Server Actions rechazan un `Origin` ajeno (CSRF) | ✅ Hecho | `tests/e2e/cross-origin.spec.ts`, `docs/adr/0011-login-y-sesion-mensaje-unico-limitador-en-memoria-y-cookies.md` | — | `npm run test:e2e -- tests/e2e/cross-origin.spec.ts` |
 
 ## A02 Security Misconfiguration
 
@@ -27,11 +28,13 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 |---|---|---|---|---|
 | Cabeceras de seguridad y CSP con nonce por petición | ✅ Hecho | `lib/security/csp.ts`, `lib/security/headers.ts`, `proxy.ts`, `tests/unit/security/csp.test.ts`, `tests/unit/security/headers.test.ts`, `tests/unit/security/proxy.test.ts`, `tests/e2e/security-headers.spec.ts`, `docs/adr/0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md` | — | `npm run test:e2e -- tests/e2e/security-headers.spec.ts` |
 | `X-Powered-By` desactivado | ✅ Hecho | `next.config.ts`, `tests/unit/security/headers.test.ts` | — | `npm test` |
+| Cross-Origin-Resource-Policy: same-origin en todas las respuestas (alerta baja del primer escaneo de ZAP) | ✅ Hecho | `lib/security/headers.ts`, `tests/unit/security/cross-origin-policy.test.ts`, `tests/e2e/cross-origin.spec.ts` | — | `npm test` |
+| Cross-Origin-Embedder-Policy no activada (aviso bajo de ZAP aceptado) | ⚠️ Parcial | `tests/unit/security/cross-origin-policy.test.ts` | Se acepta a propósito: solo sirve para aislar el origen (SharedArrayBuffer), que no se usa, y exigiría que todo recurso de terceros declarase su política. Sigue como alerta baja en ZAP | `npm test` |
 | Registro público desactivado en el proyecto de test | ✅ Hecho | `tests/integration/auth-api.test.ts`, `tests/e2e/auth.spec.ts` | — | `npm run test:integration` |
 | Registro público desactivado en producción | ⚠️ Parcial | `docs/ai-log.md` | Se desactivó y se comprobó a mano en el panel de Supabase el 2026-11-03; no hay un test que lo confirme en producción. Repetir la comprobación tras el despliegue final | Panel de Supabase de producción: Authentication, Sign In / Providers |
 | Bucket de imágenes con tipos y tamaño limitados | ✅ Hecho | `supabase/migrations/20261102230200_storage.sql`, `tests/integration/storage.test.ts`, `tests/unit/storage/image-validation.test.ts` | — | `npm run test:integration` |
 | HSTS en producción | ⚠️ Parcial | `lib/security/headers.ts`, `tests/unit/security/headers.test.ts` | El test comprueba la cabecera solo en la configuración de producción; falta comprobarla en la URL desplegada (Fase 4) | `npm test` |
-| Escaneo ZAP baseline | ❌ No hecho | — | El script está preparado (`npm run zap`) pero aún no se ha ejecutado y no hay informe. Ver la sección «Escaneo ZAP baseline» | `npm run zap` |
+| Escaneo ZAP baseline | ✅ Hecho | `scripts/zap-baseline.sh`, `tests/unit/security/zap-script.test.ts`, `tests/unit/security/zap-script-env.test.ts` | — | `npm run zap` (resultados en la sección «Escaneo ZAP baseline») |
 
 ## A03 Software Supply Chain Failures
 
@@ -118,9 +121,15 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 
 ## Escaneo ZAP baseline
 
-**Estado:** Pendiente de ejecutar
+**Estado:** Ejecutado
 
 [OWASP ZAP](https://www.zaproxy.org/) en modo baseline: rastrea la aplicación y analiza las respuestas, sin lanzar ataques. Cumple la fila «escaneo ZAP baseline sin alertas altas pendientes» de la definición de terminado (`PLAN.md` §11).
+
+**Fecha:** 2026-11-04
+**Versión de ZAP:** 2.17.0
+**Reglas:** FAIL-NEW 0 · WARN-NEW 5 · PASS 63
+**Alertas:** altas 0 · medias 1 · bajas 1 · informativas 5
+**Alertas altas pendientes:** 0
 
 **Cómo ejecutarlo** con `npm run zap` (en tu máquina, con Docker y un archivo `.env.test.local` con el proyecto de Supabase de test):
 
@@ -129,20 +138,35 @@ npm run zap
 ```
 
 - `scripts/zap-baseline.sh` compila y arranca el **build de producción** en local (puerto 3300), porque la CSP y las cabeceras reales solo existen en producción, y ejecuta la imagen oficial `ghcr.io/zaproxy/zaproxy:stable` con `zap-baseline.py` (rastreo limitado a 3 minutos).
-- **Solo el proyecto de test:** el script aborta si la URL de Supabase no es exactamente `https://<ref>.supabase.co`, con la referencia del proyecto de test. Lee solo tres variables del archivo, no usa la clave de rol de servicio ni imprime ninguna variable.
+- **Solo el proyecto de test:** el script aborta si la URL de Supabase no es exactamente `https://<ref>.supabase.co`, con la referencia del proyecto de test. Lee solo tres variables del archivo (en los formatos habituales de un `.env`), no usa la clave de rol de servicio ni imprime ninguna variable. `ZAP_CHECK_ONLY=1 npm run zap` verifica el archivo sin escanear.
 - Los informes quedan en `zap-reports/zap-baseline.html` y `zap-reports/zap-baseline.json` (carpeta ignorada por Git; no contienen secretos).
-- En Linux usa la red del anfitrión; en macOS y Windows, `host.docker.internal`. En Windows hace falta WSL o Git Bash para ejecutar el script.
-- **Límite:** no escanea la intranet, porque el baseline va sin sesión. Esa parte la cubren los tests de integración y los e2e (secciones A01, A07 y A10).
+- En Linux usa la red del anfitrión; en macOS y Windows, `host.docker.internal`. En Windows hace falta WSL o Git Bash.
 - **Plan B** si Docker no funciona: ZAP de escritorio apuntando a `http://localhost:3300`, con el mismo modo de rastreo y análisis pasivo; habría que anotar aquí qué se usó.
 
-**Qué se rellena al ejecutarlo:** fecha, versión de ZAP, número de alertas por nivel, y qué se hizo con cada alerta. Una alerta alta se corrige antes de dar el sitio por terminado; las medias y las bajas se corrigen o se documentan con su motivo. Hasta entonces este apartado no lleva cifras ni fecha.
+**Cómo se hizo.** El escaneo lo ejecutó el arquitecto en su máquina (el entorno de la IA no puede ejecutar Docker). Se hizo dos veces el mismo día: el primero detectó una alerta baja de `Cross-Origin-Resource-Policy` en 5 archivos de `/_next/static`; se corrigió con `same-origin` y el segundo escaneo (`2026-11-04 20:29:50`) ya no la muestra. **No hubo ninguna alerta alta en ninguno de los dos.**
+
+**Límites del escaneo.**
+- **No escanea la intranet:** el baseline va sin sesión. Esa parte la cubren los tests de integración y los e2e (secciones A01, A07 y A10).
+- **El rastreo envía formularios:** ZAP hizo `POST` con datos de relleno a `/login` y `/compatibilidad` contra el proyecto de test; no tuvo efecto, porque el acceso devuelve su mensaje único y la calculadora no guarda nada.
+- Es un análisis **pasivo**: no sustituye a una prueba de intrusión.
+
+**Alertas del segundo escaneo y su tratamiento**
+
+| Alerta | Riesgo | Instancias | Dónde | Tratamiento |
+|---|---|---|---|---|
+| Absence of Anti-CSRF Tokens | Media (confianza baja) | 4 | `GET` y `POST` de `/login` y `/compatibilidad` | **Evaluada y aceptada.** Los formularios usan Server Actions: solo aceptan `POST` y Next compara `Origin` con `Host`; la cookie es `sameSite: lax` (ADR 0011) y la calculadora no guarda nada. Comprobado a mano contra un build de producción: un `Origin` ajeno o `null` se aborta. El e2e `tests/e2e/cross-origin.spec.ts` lo fija: reenvía las acciones de la calculadora y del acceso (con las credenciales del admin) con un `Origin` ajeno y comprueba que se rechazan sin abrir sesión |
+| Cross-Origin-Embedder-Policy Header Missing or Invalid | Baja | 5 | `/`, `/compatibilidad` (`GET` y `POST`) y `/login` | **Aceptada.** No se usa aislamiento de origen y activarla exigiría que todo recurso de terceros declarase su política (fila de A02) |
+| Authentication Request Identified | Informativa | 1 | `POST /login` | Esperada: es el formulario de acceso |
+| Non-Storable Content | Informativa | 5 | Páginas dinámicas con `Cache-Control: no-store` (ADR 0014) | Esperada: es a propósito, para que nada de lo que lee el servidor quede guardado. En el primer escaneo incluía `robots.txt` y `sitemap.xml`, que no existen |
+| Storable and Cacheable Content | Informativa | 4 | Chunks de JavaScript y CSS de `/_next/static/chunks/` | Esperada: archivos públicos con hash en el nombre, cacheables a propósito. Ninguna página ni contenido privado es cacheable |
+| Storable but Non-Cacheable Content | Informativa | 2 | `/favicon.ico` y `/manifest.webmanifest` | Esperada: archivos públicos sin contenido sensible |
+| User Controllable HTML Element Attribute (Potential XSS) | Informativa | 7 | Los formularios de `/compatibilidad` y `/login` tras un `POST` (el primer escaneo los listó: 3 y 4) | Esperada: los formularios se rellenan de nuevo con lo enviado (las fechas y el destino oculto `next`). React escapa los atributos y hay tests con cargas hostiles (`tests/unit/compatibility/schema.test.ts`, `tests/unit/auth/redirect.test.ts`, `tests/unit/auth/login.test.ts`) |
 
 ## Resumen de lo no hecho
 
 Todo lo que no está completamente hecho en las tablas de arriba, sin esconder nada. Cada punto es una medida de su tabla.
 
 **No hecho**
-- Escaneo ZAP baseline
 - Acciones de GitHub fijadas por hash de commit
 - Autenticación multifactor (MFA con TOTP)
 - Despliegue solo desde `main` con los tests en verde
@@ -150,6 +174,7 @@ Todo lo que no está completamente hecho en las tablas de arriba, sin esconder n
 - Registro de las acciones del admin (crear, publicar, borrar)
 
 **Parcial**
+- Cross-Origin-Embedder-Policy no activada (aviso bajo de ZAP aceptado)
 - Registro público desactivado en producción
 - HSTS en producción
 - Avisos de desarrollo de `deepmerge` y `minimatch` (vía `shadcn`)
