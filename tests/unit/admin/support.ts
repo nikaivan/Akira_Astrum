@@ -30,12 +30,19 @@ export type Failure = { table: Table; op: Op; error: DbError; skip?: number };
 export type WriteEntry = { table: Table; op: "insert" | "update" | "delete"; values?: unknown; conditions: Condition[] };
 export type Actor = "admin" | "user" | "anon" | "down";
 
+/** Fallo de Storage inyectado: `skip` deja pasar las primeras llamadas; `throws` simula una excepción de red. */
+export type StorageFailure = { op: "upload" | "remove"; error?: DbError; skip?: number; throws?: boolean };
+export type StorageEntry = { op: "upload" | "remove"; bucket: string; names: string[]; contentType?: string; upsert?: boolean; size?: number };
+
 export type FakeOptions = {
   as?: Actor;
   posts?: Row[];
   categories?: Row[];
   postCategories?: Row[];
   failures?: Failure[];
+  /** Objetos que ya existen en el bucket al empezar. */
+  storageObjects?: string[];
+  storageFailures?: StorageFailure[];
   /** Se ejecuta justo antes de cada escritura: permite simular a otra petición que cambia los datos. */
   beforeWrite?: (info: { table: Table; op: "insert" | "update" | "delete" }) => void;
 };
@@ -53,6 +60,7 @@ export function post(overrides: Row = {}): Row {
     slug: `entrada-${Math.random().toString(16).slice(2, 8)}`,
     content_md: "",
     cover_image_path: null,
+    cover_alt: null,
     status: "draft",
     author_id: ADMIN_ID,
     created_at: OLD_DATE,
@@ -90,6 +98,22 @@ export function createFake(options: FakeOptions = {}) {
   const writes: WriteEntry[] = [];
   const touched = new Set<Table>();
   const pendingFailures = (options.failures ?? []).map((failure) => ({ ...failure, skip: failure.skip ?? 0 }));
+
+  // Storage en memoria: reproduce las políticas del bucket (solo el admin sube y borra; el resto recibe un rechazo).
+  const objects = new Map<string, { contentType: string; size: number }>((options.storageObjects ?? []).map((name) => [name, { contentType: "image/png", size: 1 }]));
+  const storageLog: StorageEntry[] = [];
+  const pendingStorageFailures = (options.storageFailures ?? []).map((failure) => ({ ...failure, skip: failure.skip ?? 0 }));
+  const storageFailureFor = (op: "upload" | "remove") => {
+    for (const failure of pendingStorageFailures) {
+      if (failure.op !== op) continue;
+      if (failure.skip > 0) {
+        failure.skip -= 1;
+        continue;
+      }
+      return failure;
+    }
+    return null;
+  };
 
   const failureFor = (table: Table, op: Op): DbError | null => {
     for (const failure of pendingFailures) {
@@ -223,7 +247,7 @@ export function createFake(options: FakeOptions = {}) {
         for (const value of incoming) {
           const row: Row =
             this.table === "posts"
-              ? { id: crypto.randomUUID(), content_md: "", cover_image_path: null, status: "draft", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null, ...value }
+              ? { id: crypto.randomUUID(), content_md: "", cover_image_path: null, cover_alt: null, status: "draft", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null, ...value }
               : this.table === "categories"
                 ? { id: crypto.randomUUID(), created_at: new Date().toISOString(), ...value }
                 : { ...value };
@@ -286,6 +310,29 @@ export function createFake(options: FakeOptions = {}) {
       },
     },
     from: (table: Table) => new Query(table),
+    storage: {
+      from: (bucket: string) => ({
+        upload: async (name: string, body: Uint8Array | Blob, uploadOptions?: { contentType?: string; upsert?: boolean }) => {
+          const size = body instanceof Blob ? body.size : body.byteLength;
+          storageLog.push({ op: "upload", bucket, names: [name], contentType: uploadOptions?.contentType, upsert: Boolean(uploadOptions?.upsert), size });
+          const failure = storageFailureFor("upload");
+          if (failure?.throws) throw new Error(LEAKY_ERROR.message);
+          if (failure) return { data: null, error: failure.error ?? LEAKY_ERROR };
+          if (actor !== "admin") return { data: null, error: { message: 'new row violates row-level security policy for table "objects"' } };
+          if (objects.has(name) && !uploadOptions?.upsert) return { data: null, error: { message: "The resource already exists" } };
+          objects.set(name, { contentType: uploadOptions?.contentType ?? "", size });
+          return { data: { path: name }, error: null };
+        },
+        remove: async (names: string[]) => {
+          storageLog.push({ op: "remove", bucket, names: [...names] });
+          const failure = storageFailureFor("remove");
+          if (failure?.throws) throw new Error(LEAKY_ERROR.message);
+          if (failure) return { data: null, error: failure.error ?? LEAKY_ERROR };
+          if (actor !== "admin") return { data: [], error: null }; // Storage no avisa: RLS simplemente no deja borrar nada
+          return { data: names.filter((name) => objects.delete(name)).map((name) => ({ name })), error: null };
+        },
+      }),
+    },
   } as unknown as SupabaseClient;
 
   return {
@@ -301,6 +348,14 @@ export function createFake(options: FakeOptions = {}) {
       return tables.post_categories;
     },
     writes,
+    storage: {
+      log: storageLog,
+      has: (name: string) => objects.has(name),
+      get: (name: string) => objects.get(name),
+      get names() {
+        return [...objects.keys()].sort();
+      },
+    },
     /** Tablas de datos a las que se llegó a acceder (sin contar profiles, que lee la comprobación del rol). */
     get touchedData() {
       return [...touched].filter((table) => table !== "profiles");

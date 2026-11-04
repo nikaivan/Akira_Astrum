@@ -32,3 +32,16 @@ export const POST_DELETED = "Entrada eliminada.";
 export const CATEGORY_CREATED = "Categoría creada.";
 export const CATEGORY_RENAMED = "Categoría renombrada.";
 export const CATEGORY_DELETED = "Categoría eliminada.";
+
+export const COVER_INVALID_TYPE = "La imagen debe ser JPEG, PNG o WebP.";
+export const COVER_CORRUPT = "El archivo no es una imagen válida o está dañado.";
+export const COVER_EMPTY = "El archivo está vacío.";
+export const COVER_TOO_LARGE = "La imagen no puede superar los 2 MB.";
+export const COVER_DIMENSIONS = "La imagen es demasiado grande (máximo 8000 px por lado y 25 megapíxeles).";
+export const COVER_ALT_REQUIRED = "El texto alternativo de la portada es obligatorio.";
+export const COVER_ALT_TOO_LONG = "El texto alternativo no puede superar los 200 caracteres.";
+export const COVER_ALT_WITHOUT_COVER = "El texto alternativo solo se usa con una portada.";
+export const COVER_CONFLICT = "Elige entre quitar la portada o subir una nueva.";
+export const UPLOAD_RATE_LIMIT = "Demasiadas subidas seguidas. Inténtalo de nuevo en unos minutos.";
+export const COVER_OLD_NOT_REMOVED = "Los cambios se guardaron, pero no se pudo borrar la imagen anterior.";
+export const COVER_NOT_REMOVED_ON_DELETE = "La entrada se eliminó, pero no se pudo borrar su imagen.";

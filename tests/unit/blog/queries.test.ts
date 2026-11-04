@@ -72,6 +72,7 @@ describe("listPublishedPosts", () => {
           slug: "mi-entrada",
           title: "Mi entrada",
           coverUrl: COVER_URL,
+          coverAlt: "",
           categories: [{ name: "Astrología", slug: "astrologia" }],
           publishedAt: "2026-11-02T10:00:00+00:00",
           dateLabel: "2 de noviembre de 2026",

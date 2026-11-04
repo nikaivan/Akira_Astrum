@@ -24,7 +24,7 @@ export function PostArticle({ post, imageOrigin }: Props) {
         <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-muted">
           <Image
             src={post.coverUrl}
-            alt=""
+            alt={post.coverAlt ?? ""}
             fill
             priority
             sizes="(min-width: 768px) 700px, 100vw"

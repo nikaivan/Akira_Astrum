@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CategoryLinks } from "@/components/category-links";
+import { CoverPlaceholder } from "@/components/cover-placeholder";
 import { PostMeta } from "@/components/post-meta";
 import type { PostCardData } from "@/lib/blog/queries";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,7 @@ type Props = {
   variant?: "default" | "featured";
 };
 
-/** Tarjeta de una entrada: portada decorativa, título, categorías, fecha y tiempo de lectura. */
+/** Tarjeta de una entrada: portada con su texto alternativo (o un marcador neutro), título, categorías, fecha y tiempo de lectura. */
 export function PostCard({
   post,
   headingLevel = 2,
@@ -35,7 +36,7 @@ export function PostCard({
         >
           <Image
             src={post.coverUrl}
-            alt=""
+            alt={post.coverAlt ?? ""}
             fill
             sizes={
               featured
@@ -45,7 +46,9 @@ export function PostCard({
             className="object-cover"
           />
         </div>
-      ) : null}
+      ) : (
+        <CoverPlaceholder className={cn("aspect-video w-full shrink-0", featured && "lg:aspect-auto lg:min-h-72 lg:w-1/2")} />
+      )}
       <div
         className={cn(
           "flex flex-1 flex-col gap-2 p-4 sm:p-5",

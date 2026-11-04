@@ -48,7 +48,7 @@ const UPDATE_COLUMNS: [string, string, string[]][] = [
   ["post_categories", "anon", []],
   ["post_categories", "authenticated", []],
   ["posts", "anon", []],
-  ["posts", "authenticated", ["content_md", "cover_image_path", "published_at", "slug", "status", "title"]],
+  ["posts", "authenticated", ["content_md", "cover_alt", "cover_image_path", "published_at", "slug", "status", "title"]],
   ["profiles", "anon", []],
   ["profiles", "authenticated", []],
 ];
