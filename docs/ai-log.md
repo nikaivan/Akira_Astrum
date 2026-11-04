@@ -318,6 +318,29 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-04 · Fase 2 · Pulido visual: identidad «noche y marfil» y menú en el acceso
+- **Objetivo de la sesión:** que la web pública se vea más profesional, elegante y *premium*, sin tocar la lógica, las rutas ni los tests de seguridad, y que la página de acceso muestre el menú para volver al blog sin los botones del navegador.
+- **Decisiones que tomé yo (tres preguntas del plan):** dirección **híbrido noche y marfil** (cabecera, héroe, bandas y pie en azul noche con dorado; lectura sobre marfil); alcance **web pública, login y 404/error** (el panel hereda tokens y no se rediseña); y **mantener Cormorant Garamond e Inter**. Pedí además la cabecera en el login, que el pie del login no lleve «Intranet» y, al final, que se actualizara `docs/design.md`.
+- **Lo que generó la IA (en una frase):** un sistema de dos superficies por tokens (`data-surface="night"`), cabecera, pie, héroe, banda de título y adornos SVG propios, tarjetas y entrada rediseñadas, el menú en el acceso y los tests de contraste, superficies y navegación.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`ab12ea9`): una prueba de contraste WCAG que lee `globals.css` (rojo hasta que existió la noche), tests de superficies y de la página de acceso, y un e2e de superficies, menú, 320 px, movimiento reducido y foco. Implementación en `1e9bc08`. Verde: 2049 unitarios y todos los e2e, que ejecuté yo.
+- **Quién ejecutó qué:** la IA ejecutó unitarios, `tsc`, lint, `next build` en una copia y un arnés local con navegador real (axe sin violaciones en 7 pantallas más el resultado de la calculadora, en escritorio y móvil, y capturas revisadas a ojo); yo ejecuté los e2e contra el proyecto de test.
+- **Permisos que di para tocar tests:** uno propio, el e2e del foco del anillo.
+- **Errores que detectaron las pruebas o las capturas:**
+  - El separador de las entradas usaba el glifo ✦ y salía como un triángulo diminuto: Cormorant no lo incluye. Lo vi en una captura, no en un test; ahora es un filete dorado degradado.
+  - Mi e2e del foco leía los tres primeros números del `box-shadow`, pero Tailwind v4 escribe el anillo en `oklab(...)` y tras capas transparentes: falló en el arnés con un anillo que sí se veía. Ahora el navegador convierte el color con un canvas.
+- **Errores de la IA:**
+  - El arnés local no servía las lecturas públicas y las primeras capturas mostraron «Algo ha fallado»; lo identifiqué enseguida como una limitación del arnés (sustituí solo allí las consultas del blog por datos de ejemplo) y no como un fallo del diseño.
+  - Un `?raw` sobre el CSS con `import.meta.glob` devolvía vacío: la prueba de paleta lee el archivo con `fs`.
+  - Para el pie del acceso, la decisión se tomó con una pregunta mía; el test correspondiente lo añadí antes de commitear, con tu aprobación.
+- **Paso 4 (refactor):** una sola definición del panel de tarjeta (`panelClass`) y de los anchos de contenedor (`container`) en `components/ui/surface-styles.ts`, y un `NightBand` común al héroe y a la banda de título. Se comprobó con capturas píxel a píxel antes y después: las 14 pantallas, idénticas.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0018](adr/0018-identidad-visual-noche-y-marfil-tokens-por-superficie-y-adornos-propios.md), aceptado por mí el 2026-11-04. Actualiza `docs/design.md`.
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna. Los adornos son SVG y CSS propios y las fuentes siguen siendo las de `next/font`.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; `docs/design.md` se modifica a petición mía (ver "Desviaciones respecto al plan").
+- **Resultado:** web pública con identidad propia, accesible (contrastes comprobados por test), sin desbordes y con el acceso conectado al resto del sitio. Pendiente declarado: `theme_color` de la PWA (Fase 3), la CSP (Fase 3), y el pulido del panel de administración, que queda fuera de alcance.
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -374,6 +397,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-04 | La migración de `cover_alt` debe aplicarse en producción antes de desplegar | La lectura pública falla cerrada si falta la columna | Pendiente: aplicarla al cerrar el bloque y añadir «migrar antes de desplegar» a la Fase 4 |
 | 2026-11-04 | La limpieza de imágenes huérfanas se extiende a las del contenido (`PLAN.md` §5 solo citaba borrar la entrada y cambiar la portada) | Las imágenes insertadas en el texto son archivos de la entrada y quedarían sin dueño | Se borran al eliminar la entrada y al quitarlas del texto al guardar, salvo que otra entrada las use; las subidas y no guardadas quedan huérfanas (ADR 0017) |
 | 2026-11-04 | Las Server Actions del panel pasan de ocho a nueve (`uploadPostImage`) | La subida de una imagen del contenido necesita una acción propia que no escribe en la base de datos | Tests que enumeran las acciones ampliados con permiso; la subida no invalida la caché (ADR 0017) |
+| 2026-11-04 | El pulido visual se hace en un bloque propio y con cambio de paleta, no «al final y con el estilo mínimo» | Lo pedí yo: más aspecto profesional y premium | `docs/design.md` actualizado (paleta de dos superficies, tipografía, wireframes y `theme_color`) y [ADR 0018](adr/0018-identidad-visual-noche-y-marfil-tokens-por-superficie-y-adornos-propios.md); el panel no se rediseña |
+| 2026-11-04 | La página de acceso muestra la cabecera y el pie del sitio (sin «Intranet») | No había forma de volver al blog sin los botones del navegador; `design.md` §6 bis exige navegación siempre visible | Tests nuevos de la página de acceso; el resto de sus tests no cambia |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -399,6 +424,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Estilo sin ver la pantalla | Montar las pantallas del panel con datos de ejemplo en una copia aislada y sacar capturas en escritorio y móvil | Destapó un fallo del refactor que ningún test detectaba (botones sin `cn`) | Mirar siempre las capturas antes de dar el estilo por bueno |
 | Fallos e2e que no se explican | Construir un arnés local (Supabase en memoria + navegador real) y registrar lo que llega al servidor en lugar de seguir con hipótesis | Funcionó: 3 causas reales que mi hipótesis inicial no vio (nombre `"undefined"`, orden del `FormData`, reinicio de campos) | Reproducir antes de corregir; una hipótesis que no cambia el resultado no era la causa |
 | Lecciones ya escritas | Pedir que, antes de escribir un test parecido a otro que ya dio problemas, se relea el ADR y el ai-log del bloque anterior | Habría evitado repetir el recuento de filas con el diálogo abierto (ya estaba en el ADR 0015) | Releer lo documentado antes de escribir tests de la misma familia |
+| Diseño con tests | Convertir el contraste en un test: leer los tokens de `globals.css` y aplicar la fórmula de WCAG a cada par, en las dos superficies | Funcionó: rojo hasta que existió la noche, y fija la paleta sin discutir «a ojo» | Cuando el criterio es medible (contraste, anchos, 44 px), escribirlo como test antes de diseñar |
+| Mirar el resultado | Capturas en escritorio y móvil con datos de ejemplo, y comparar píxel a píxel antes y después de un refactor | Destapó el glifo ✦ que ningún test detectaba y confirmó que el refactor no cambió nada | Mirar siempre las capturas y comparar antes/después en refactors visuales |
 
 ## Resumen final para la memoria (se completa al terminar)
 
