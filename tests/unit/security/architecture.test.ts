@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 const SECURITY = import.meta.glob("/lib/security/**/*.ts", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
+const LAYOUT = (import.meta.glob("/app/layout.tsx", { query: "?raw", import: "default", eager: true }) as Record<string, string>)["/app/layout.tsx"] ?? "";
+
 describe("lib/security", () => {
   it("existen los módulos esperados", () => {
     expect(Object.keys(SECURITY).sort()).toEqual(expect.arrayContaining(["/lib/security/csp.ts", "/lib/security/headers.ts"]));
@@ -19,5 +21,9 @@ describe("lib/security", () => {
     const source = SECURITY["/lib/security/csp.ts"] ?? "";
     expect(source).not.toMatch(/script-src[^;`"]*unsafe-inline/);
     expect(source).not.toMatch(/https?:\/\/(?!localhost)[a-z0-9.-]+\.[a-z]{2,}/i);
+  });
+
+  it("el layout raíz fuerza el renderizado dinámico: sin él, las páginas estáticas no recibirían el nonce de la CSP", () => {
+    expect(LAYOUT).toMatch(/export const dynamic = "force-dynamic"/);
   });
 });

@@ -59,6 +59,16 @@ describe("buildCsp: estilos", () => {
   });
 });
 
+describe("buildCsp: excepción de estilos en atributos", () => {
+  it("solo los atributos style admiten unsafe-inline (next/image); ni style-src ni script-src lo hacen", () => {
+    const parsed = directives(csp());
+    expect(parsed["style-src-attr"]).toEqual(["'unsafe-inline'"]);
+    expect(parsed["style-src"]).not.toContain("'unsafe-inline'");
+    expect(parsed["script-src"]).not.toContain("'unsafe-inline'");
+    expect(Object.keys(parsed)).not.toContain("script-src-attr");
+  });
+});
+
 describe("buildCsp: directivas obligatorias", () => {
   it.each([
     ["default-src", ["'self'"]],
