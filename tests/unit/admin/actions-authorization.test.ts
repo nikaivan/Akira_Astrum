@@ -15,10 +15,11 @@ const ACTIONS = { ...postActions, ...categoryActions } as unknown as Record<stri
 beforeEach(() => {
   vi.mocked(createClient).mockReset();
   vi.mocked(revalidatePath).mockReset();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proyecto.supabase.co"); // la subida de imágenes necesita el origen de Storage
 });
 
 describe("las Server Actions del panel", () => {
-  it("son exactamente las ocho acordadas (una acción nueva debe añadirse aquí y quedar protegida)", () => {
+  it("son exactamente las nueve acordadas (una acción nueva debe añadirse aquí y quedar protegida)", () => {
     expect(Object.keys(ACTIONS).sort()).toEqual(ACTION_NAMES);
     for (const action of Object.values(ACTIONS)) expect(typeof action).toBe("function");
   });
@@ -75,6 +76,7 @@ describe("contraste: el admin sí puede", () => {
     // Termina bien (con un estado) o con la redirección de Next; nunca con "Acceso denegado".
     const redirected = typeof (outcome as { digest?: string } | null)?.digest === "string" && String((outcome as { digest: string }).digest).startsWith("NEXT_REDIRECT");
     if (!redirected) expect(outcome).toMatchObject({ ok: true });
-    expect(fake.writes.length).toBeGreaterThan(0);
+    // Las mutaciones escriben en la base de datos; la subida de una imagen solo escribe en Storage.
+    expect(fake.writes.length + fake.storage.log.length).toBeGreaterThan(0);
   });
 });

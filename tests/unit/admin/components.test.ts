@@ -13,7 +13,7 @@ import { CAT_A, CAT_B, POST_DRAFT, POST_PUBLISHED } from "./support";
 // Las acciones reales hablan con Supabase; aquí solo hace falta que existan para pasarlas a los formularios.
 vi.mock("@/lib/admin/posts/actions", () => {
   const action = vi.fn();
-  return { createPost: action, updatePost: action, publishPost: action, unpublishPost: action, deletePost: action };
+  return { createPost: action, updatePost: action, publishPost: action, unpublishPost: action, deletePost: action, uploadPostImage: action };
 });
 vi.mock("@/lib/admin/categories/actions", () => {
   const action = vi.fn();

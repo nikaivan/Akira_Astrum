@@ -31,8 +31,11 @@ beforeEach(() => {
   vi.mocked(revalidatePath).mockReset();
 });
 
+// Subir una imagen no cambia ninguna página pública: la entrada que la use se guarda (y se invalida) por separado.
+const MUTATIONS = ACTION_NAMES.filter((name) => name !== "uploadPostImage");
+
 describe("invalidación de la caché pública tras cada mutación", () => {
-  it.each(ACTION_NAMES)("%s invalida las rutas públicas y el panel", async (name) => {
+  it.each(MUTATIONS)("%s invalida las rutas públicas y el panel", async (name) => {
     await call(name, VALID_FORMS[name]());
     expect(vi.mocked(revalidatePath).mock.calls).toEqual(expect.arrayContaining(EXPECTED));
   });
@@ -48,6 +51,7 @@ describe("sin cambios no hay invalidación", () => {
     createCategory: form({ name: "" }),
     renameCategory: form({ id: "no-uuid", name: "x" }),
     deleteCategory: form({ id: "11111111-1111-4111-8111-111111111111" }),
+    uploadPostImage: form({ alt: "" }),
   };
 
   it.each(ACTION_NAMES)("%s con datos inválidos no escribe ni invalida", async (name) => {

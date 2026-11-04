@@ -188,6 +188,9 @@ const assertE2EPrefix = (prefix: string) => {
 /** Prefijo único por test para las entradas y categorías que crea la prueba desde el panel. */
 export const newE2EPrefix = () => `${E2E_PREFIX}${randomBytes(4).toString("hex")}`;
 
+/** Nombres generados de las imágenes del bucket que menciona un contenido (solo para la limpieza de los tests). */
+const contentImageNames = (markdown: string): string[] => [...markdown.matchAll(/post-images\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:png|jpg|webp))/g)].map((match) => match[1]);
+
 /** Borra solo las entradas y categorías cuyo slug empieza por el prefijo. */
 export async function deleteE2EByPrefix(prefix: string): Promise<void> {
   assertE2EPrefix(prefix);
@@ -195,6 +198,9 @@ export async function deleteE2EByPrefix(prefix: string): Promise<void> {
   // Las portadas subidas desde el panel se borran con sus entradas (el borrado de la entrada ya las quita, esto cubre los fallos).
   const { data: covers } = await db.from("posts").select("cover_image_path").like("slug", `${prefix}%`).not("cover_image_path", "is", null);
   const names = (covers ?? []).map((row) => String(row.cover_image_path));
+  // Y las imágenes escritas en el contenido (el borrado de la entrada también las quita; esto cubre los fallos).
+  const { data: texts } = await db.from("posts").select("content_md").like("slug", `${prefix}%`);
+  for (const row of texts ?? []) names.push(...contentImageNames(String(row.content_md)));
   await db.from("posts").delete().like("slug", `${prefix}%`);
   if (names.length > 0) await db.storage.from(BUCKET).remove(names);
   await db.from("categories").delete().like("slug", `${prefix}%`);
@@ -239,6 +245,14 @@ export async function getE2ECoverAlt(slug: string): Promise<string | null> {
   const { data, error } = await serviceClient().from("posts").select("cover_alt").eq("slug", slug).maybeSingle();
   if (error) throw new Error(`No se pudo leer el texto alternativo de la entrada de prueba: ${error.message}`);
   return (data?.cover_alt as string | null | undefined) ?? null;
+}
+
+/** Contenido Markdown guardado de una entrada de prueba. */
+export async function getE2EContent(slug: string): Promise<string | null> {
+  assertE2EPrefix(slug);
+  const { data, error } = await serviceClient().from("posts").select("content_md").eq("slug", slug).maybeSingle();
+  if (error) throw new Error(`No se pudo leer el contenido de la entrada de prueba: ${error.message}`);
+  return (data?.content_md as string | null | undefined) ?? null;
 }
 
 /** URL pública del objeto, tal y como la sirve Storage (sin pasar por next/image). */
