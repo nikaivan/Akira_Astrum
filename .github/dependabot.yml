@@ -1,0 +1,20 @@
+# Actualizaciones de dependencias (A03). Una sola PR semanal por ecosistema, para no llenar el repositorio.
+# Las actualizaciones de seguridad de Dependabot se activan en Settings → Code security del repositorio.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 1
+    groups:
+      npm-updates:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 1
+    groups:
+      actions-updates:
+        patterns: ["*"]
