@@ -4,6 +4,7 @@ import { authorizeAdmin, type AdminDecision } from "@/lib/auth/authorize";
 import { adminResponse } from "@/lib/auth/proxy-response";
 import { authCookieOptions, enforceSessionCookieOptions } from "@/lib/supabase/cookie-options";
 import { buildCsp, generateNonce } from "@/lib/security/csp";
+import { recordSecurityEvent } from "@/lib/security/log";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 /** Política de esta petición; el nonce se reenvía a la renderización para que Next marque sus scripts y estilos. */
@@ -49,6 +50,11 @@ export async function proxy(request: NextRequest) {
     decision = await authorizeAdmin(supabase);
   } catch {
     decision = { status: "error" };
+  }
+
+  // Una visita sin sesión es normal y no se registra; un no admin o un fallo del servicio, sí (A09).
+  if (decision.status === "forbidden" || decision.status === "error") {
+    recordSecurityEvent({ event: "access_denied", reason: decision.status === "forbidden" ? "forbidden" : "service_error", layer: "proxy", route: request.nextUrl.pathname });
   }
 
   return secured(adminResponse(decision, request, passthrough), policy);
