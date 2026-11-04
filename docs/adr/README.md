@@ -26,3 +26,4 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0019](0019-csp-con-nonce-por-peticion-excepcion-de-estilos-en-atributos-y-cabeceras-estaticas.md) | CSP con nonce por petición, excepción de estilos en atributos y cabeceras estáticas | Aceptado |
 | [0020](0020-registro-de-eventos-de-seguridad-sin-datos-personales-limites-en-serverless-y-fallo-cerrado.md) | Registro de eventos de seguridad sin datos personales, límites en serverless y fallo cerrado | Aceptado |
 | [0021](0021-cadena-de-suministro-versiones-exactas-lista-de-dependencias-revisadas-y-auditoria-en-la-ci.md) | Cadena de suministro: versiones exactas, lista de dependencias revisadas y auditoría en la CI | Aceptado |
+| [0022](0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md) | PWA mínima: manifiesto, service worker que solo sirve la página sin conexión y nunca guarda contenido | Aceptado |
