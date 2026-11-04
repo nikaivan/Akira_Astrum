@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { registerServiceWorker } from "@/lib/pwa/register";
+import { registerServiceWorker } from "@/lib/pwa/sw-registration";
 
 describe("registerServiceWorker", () => {
   it("registra /sw.js con alcance / y sin caché HTTP del propio archivo", async () => {

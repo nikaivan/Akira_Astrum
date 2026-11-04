@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import nextConfig from "@/next.config";
 
-const RAW = import.meta.glob(["/app/layout.tsx", "/app/globals.css", "/components/site-header.tsx", "/components/site-footer.tsx", "/components/admin/admin-nav.tsx", "/components/service-worker-register.tsx"], {
+const RAW = import.meta.glob(["/app/layout.tsx", "/components/site-header.tsx", "/components/site-footer.tsx", "/components/admin/admin-nav.tsx", "/components/service-worker-register.tsx"], {
   query: "?raw",
   import: "default",
   eager: true,
@@ -37,7 +38,8 @@ describe("registro del service worker (componente)", () => {
 
 describe("zonas seguras de la pantalla (muescas y barras del sistema)", () => {
   it("globals.css define los cuatro márgenes seguros", () => {
-    const css = source("/app/globals.css");
+    // El CSS se lee con fs: import.meta.glob con ?raw devuelve un CSS vacío.
+    const css = readFileSync(new URL("../../../app/globals.css", import.meta.url), "utf8");
     for (const side of ["top", "bottom", "left", "right"]) expect(css).toContain(`env(safe-area-inset-${side}`);
   });
 
