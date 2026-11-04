@@ -262,6 +262,34 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 
 ---
 
+## 2026-11-04 · Fase 2 · Bloque 4: portada de las entradas (subida a Storage y texto alternativo)
+- **Objetivo de la sesión:** subir la imagen de portada desde el editor (`cover_image_path` + texto alternativo obligatorio) a Supabase Storage, configurar `next/image` y el límite de las Server Actions, y mostrarla en el blog. Fuera de alcance: imágenes dentro del Markdown.
+- **Lo que pedí a la IA (resumen):** subida por la Server Action con la sesión del admin (sin `service_role`), validación por contenido, nombre generado, compensación ante fallos parciales, limitación de subidas, nueva columna `cover_alt` y la lista de tests por nivel (unitarios, integración con Storage real, e2e con peticiones forjadas, A01, móvil, teclado y axe). Tests primero y un commit por ciclo tras mi aprobación.
+- **Lo que generó la IA (en una frase):** `lib/storage/` (validador de JPEG/PNG/WebP sin librerías, subida y borrado, limitador), la migración `cover_alt`, la gestión de la portada en los servicios de crear, editar y eliminar, el campo de portada del editor, el marcador neutro y las tarjetas con imagen en el blog, y los tests de los tres niveles.
+- **Test escrito/aprobado antes de implementar:** sí. Aprobé los tests (`9ca82cd`) y la implementación (`c1ac980`), y después dos correcciones (`5c5f2dc`, `ec6548f`). Verde: 1803 unitarios, 215 de integración y 196 e2e (34 nuevos de portada).
+- **Quién ejecutó qué:** la IA ejecutó unitarios, `tsc`, lint, `next build` en una copia y un arnés local con un Supabase en memoria y un navegador real; yo ejecuté la integración y los e2e contra el proyecto de test. Apliqué yo la migración en el proyecto de test.
+- **Permisos que di para tocar tests aprobados:** `structure.test.ts` (columna `cover_alt`), `architecture.test.ts` del panel (`bodySizeLimit` de 3 MB), `components.test.ts`, `queries.test.ts` (`coverAlt: ""`), una expresión de `cover-field.test.ts` y la reescritura de la captura y el reenvío en `cover.spec.ts`.
+- **Errores que detectaron los tests:**
+  - 24 e2e fallaron dos veces seguidas. Mi primera hipótesis (un archivo vacío con nombre `""`) era solo una parte. Las causas reales, halladas con el arnés local: un campo de archivo sin elegir llega al servidor como `File` de 0 bytes con el nombre literal `"undefined"`; en el reenvío, un objeto de JavaScript pone la clave numérica `"0"` la primera y React no encuentra las partes (hay que usar un `FormData` ordenado); y `useActionState` reinicia los campos sin controlar tras cada envío, así que el archivo se guarda en una referencia.
+  - La lectura pública rompía con un `cover_alt` nulo (`text()` lanzaba); ahora la lectura es tolerante, y el test aprobado de `queries` se ajustó con tu permiso.
+  - Un e2e de «Mantener portada» falló una vez en escritorio y pasó 10 de 10 al repetirlo: intermitente, probablemente una carrera de hidratación bajo carga. No toqué el test; queda vigilado.
+- **Errores de la IA:**
+  - Ejecuté `pkill -f "next dev --port 3200"` y se mató a sí mismo mi propia terminal (código 144); lo correcto era `fuser -k 3200/tcp`.
+  - Dos errores de `tsc` en mis tests: `new File([bytes])` con `Uint8Array<ArrayBufferLike>` y un `let offset = 8` con tipo literal.
+  - Mis tests pasaban en vacío (`undefined === undefined`); añadí guardas que exigen que existan los mensajes.
+  - Un test de arquitectura tropezó con el nombre de la clave de servicio; ahora se compone en tiempo de ejecución.
+  - Olvidé advertir el orden de despliegue de la migración: `npm run dev` con `.env.local` mostró «Lectura no disponible» porque producción aún no tenía `cover_alt`.
+  - El e2e de CSRF del bloque 3 pasaba en parte porque el cuerpo reenviado era nulo y Next rechazaba antes por el `Origin`; el reenvío con `FormData` de este bloque lo prueba de verdad.
+- **Lo que confirmaron los tests de seguridad:** un SVG, un PNG dañado, un archivo vacío o de más de 2 MB se rechazan sin crear ni subir nada (también con peticiones forjadas, y el límite de 3 MB de Next corta lo grande); la acción de subida reenviada con la sesión de un usuario sin rol no sube nada; y `next/image` no sirve imágenes de otros hosts, proyectos, buckets ni con consulta.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** [ADR 0016](adr/0016-subida-de-la-portada-validacion-por-contenido-nombre-generado-y-compensacion.md), aceptado por mí el 2026-11-04. Sustituye en un punto al ADR 0015: ahora `bodySizeLimit` está definido (3 MB).
+- **Dependencias nuevas (nombre y comprobación de que es el paquete correcto):** ninguna; la validación de imágenes es propia. Las imágenes de prueba reales se generaron con Pillow fuera del proyecto.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`. Se cierra la desviación del bloque 2 (`alt=""` provisional) con la columna `cover_alt`.
+- **Paso 4 (refactor):** en `lib/admin/posts/service.ts` se nombra el tipo `InspectedCover`, se elimina el alias `discard` y el aviso por borrado fallido pasa a un solo ayudante (`removalWarning`) usado al editar y al eliminar. Sin cambios de comportamiento ni de tests.
+- **Resultado:** portada completa y verificada con datos reales. Pendiente declarado: aplicar la migración `20261104000000_cover_alt.sql` en producción **antes** de desplegar (paso a añadir a la Fase 4), paginación (límite de 50), `img-src` con `blob:` en la CSP, registro de eventos del admin y MFA (Fase 3), y que el service worker no cachee blog ni panel.
+- **Tiempo aproximado:** no medido.
+
+---
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -314,6 +342,8 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-03 | El `h1` de `/admin` es «Panel de administración» y no «Entradas» | Un test aprobado de la Fase 1 lo espera; prefiero no tocarlo | Ninguno; mi página y mi spec se ajustaron |
 | 2026-11-03 | Sin campo de extracto en el formulario y sin paginación del listado (máximo 50) | `posts` no tiene esa columna y el plan del bloque lo decidió así; el blog deriva el extracto del contenido | Ninguno; el borrado de la portada de Storage al eliminar una entrada queda para el bloque 4 |
 | 2026-11-03 | Los e2e del panel usan una sesión de admin por trabajador, con un usuario propio | Supabase Auth limita los inicios de sesión por IP y el test de cerrar sesión revoca las de `users.admin` | Ninguno en producción |
+| 2026-11-04 | `serverActions.bodySizeLimit` pasa a 3 MB (el ADR 0015 decía que no se definía) | El valor por defecto (1 MB) impide subir una portada válida de 2 MiB | Global a todas las acciones; el límite real lo aplican la validación y el bucket. Test de arquitectura ajustado con permiso |
+| 2026-11-04 | La migración de `cover_alt` debe aplicarse en producción antes de desplegar | La lectura pública falla cerrada si falta la columna | Pendiente: aplicarla al cerrar el bloque y añadir «migrar antes de desplegar» a la Fase 4 |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -337,6 +367,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Decisiones abiertas del plan | Preguntar, antes de implementar, las cuatro cuestiones que el código y `PLAN.md` no resolvían (extracto, atomicidad, borrar categorías con entradas, slug publicado) | Funcionó: una de las respuestas (slug bloqueado) añadió una regla nueva y sus tests desde el principio | Preguntar siempre lo que cambia el diseño, con una recomendación, y no decidirlo en silencio |
 | Muchos fallos de golpe | Pegar la salida completa de los e2e (12 fallos) y pedir agruparlos por causa antes de arreglar nada | Funcionó: eran 5 causas, dos de ellas errores de mis tests y no de la aplicación | Diagnosticar por causas y pedir permiso para tocar tests aprobados con la lista exacta de líneas |
 | Estilo sin ver la pantalla | Montar las pantallas del panel con datos de ejemplo en una copia aislada y sacar capturas en escritorio y móvil | Destapó un fallo del refactor que ningún test detectaba (botones sin `cn`) | Mirar siempre las capturas antes de dar el estilo por bueno |
+| Fallos e2e que no se explican | Construir un arnés local (Supabase en memoria + navegador real) y registrar lo que llega al servidor en lugar de seguir con hipótesis | Funcionó: 3 causas reales que mi hipótesis inicial no vio (nombre `"undefined"`, orden del `FormData`, reinicio de campos) | Reproducir antes de corregir; una hipótesis que no cambia el resultado no era la causa |
 
 ## Resumen final para la memoria (se completa al terminar)
 

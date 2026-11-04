@@ -20,3 +20,4 @@ Las desviaciones respecto a `PLAN.md` se registran aquí o en `docs/ai-log.md`, 
 | [0013](0013-markdown-publico-sanitizado-react-markdown-y-lista-blanca-explicita.md) | Markdown público sanitizado: react-markdown sin HTML crudo y lista blanca explícita | Aceptado |
 | [0014](0014-lectura-publica-sin-cache-cliente-anonimo-y-404-unico.md) | Lectura pública sin caché: cliente anónimo sin cookies, `force-dynamic` y un único 404 | Aceptado |
 | [0015](0015-mutaciones-del-panel-esquemas-estrictos-withadminaction-y-compensacion.md) | Mutaciones del panel: esquemas estrictos, `withAdminAction` en cada acción y compensación en lugar de transacción | Aceptado |
+| [0016](0016-subida-de-la-portada-validacion-por-contenido-nombre-generado-y-compensacion.md) | Subida de la portada: validación por contenido, nombre generado, compensación, límite de subidas y política del bucket | Aceptado |
