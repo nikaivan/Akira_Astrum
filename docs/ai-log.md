@@ -466,6 +466,20 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Resultado:** `docs/owasp-checklist.md` completo con evidencias verificables por test y un escaneo ZAP sin alertas altas. Pendiente declarado en su resumen: MFA, alertas automáticas, el registro de las acciones del admin, las acciones de GitHub por hash, el despliegue solo desde `main`, las comprobaciones en producción, y el modelo de amenazas (sigue «BORRADOR»).
 - **Tiempo aproximado:** no medido.
 
+## 2026-11-05 · Fase 4 · Despliegue en Vercel y comprobación en producción
+- **Objetivo de la sesión:** preparar y comprobar el despliegue de la aplicación en Vercel sin tocar Supabase de producción desde el entorno de la IA, y dejar constancia de lo verificado en la URL desplegada.
+- **Lo que pedí a la IA (resumen):** ejecutar `npm ci`, lint, tests y `build`; listar los **nombres** de las variables de entorno (sin valores) y decir si hacía falta `service_role`; revisar `next.config.ts`, la CSP y el host de imágenes con un dominio `*.vercel.app`; comprobar que ningún `.env*` estuvo en el historial; y darme una checklist para comprobar a mano.
+- **Lo que generó la IA (en una frase):** el informe de preparación (sin cambios de código) y, tras el despliegue, esta documentación: URL en el README, estado de tres medidas del checklist y esta entrada.
+- **Resultado de la preparación:** `npm ci` correcto; lint con 0 errores; 2441 tests unitarios en verde; `npm run build` correcto (hecho con variables falsas en línea para no cargar mi `.env.local`). Variables necesarias: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY` **no** hace falta y no se pone en Vercel. El historial de Git solo contiene `.env.example` (sin valores) y ninguna clave real.
+- **Lo que comprobé yo a mano en https://akira-astrum.vercel.app/:** imágenes y CSP, inicio de sesión y cookie, cabeceras, creación y borrado de una entrada de prueba, PWA y registro público desactivado en Supabase. Indiqué a la IA que todo estaba probado; la IA no tiene acceso al despliegue ni a producción y se limitó a registrar mi confirmación, sin detalle por punto.
+- **Incidencia:** mi `main` local tenía un commit propio («desplegar en Vercel») hecho sobre una versión antigua de `main`, y divergía de `origin/main` (1 commit frente a 14). La IA no podía ver ese commit; me indicó cómo inspeccionarlo y alinear la rama sin perder nada, y quedó resuelto. Lección: actualizar `main` antes de hacer commits locales.
+- **Test escrito/aprobado antes de implementar:** no aplica: no hay código nuevo. Los tests del checklist (`tests/unit/docs/`) siguen vigilando el documento.
+- **Decisión de arquitectura tomada (enlace al ADR si existe):** ninguna nueva.
+- **Dependencias nuevas:** ninguna.
+- **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; ver "Desviaciones respecto al plan".
+- **Pendiente declarado:** que el despliegue solo salga de `main` con la CI en verde (no consta que esté configurado), la sustitución de la caché del service worker entre versiones, MFA, alertas automáticas y el registro de las acciones del admin.
+- **Tiempo aproximado:** no medido.
+
 ## Dependencias añadidas (resumen)
 
 Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Versiones fijas (sin `^`). Incluye solo las dependencias directas.
@@ -536,6 +550,7 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | 2026-11-04 | ZAP lo ejecuta el arquitecto en su Mac y no la IA, y el script se prueba en seco con archivos de entorno falsos | El entorno de la IA no tiene demonio de Docker y bloquea las descargas de GitHub y de `ghcr.io` | El informe se pasa como resumen (sin secretos); [ADR 0023](adr/0023-escaneo-zap-baseline-y-checklist-owasp-verificable.md) |
 | 2026-11-04 | Se añade `Cross-Origin-Resource-Policy: same-origin` a las cabeceras estáticas y se acepta la ausencia de `Cross-Origin-Embedder-Policy` | Alerta baja del primer escaneo de ZAP en los chunks de `_next/static`; COEP solo sirve para aislar el origen | Amplía las cabeceras del ADR 0019; tests nuevos (`cross-origin-policy.test.ts`) |
 | 2026-11-04 | Los límites de intentos no se rehacen en el sub-bloque B | Ya existían y estaban probados desde los bloques 4 de la Fase 1, 1 y 4 de la Fase 2; solo se añadieron los tests de recuperación y el registro | Los límites en serverless se documentan en el ADR 0020 |
+| 2026-11-05 | Se despliega en Vercel (https://akira-astrum.vercel.app/) | Cierre de la Fase 4 en el plazo | No consta que el despliegue solo salga de `main` con la CI en verde; pendiente declarado en el checklist OWASP |
 
 ## Prompts que funcionaron y que no (opcional)
 
@@ -571,9 +586,9 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Probar con los datos reales del usuario | Ejecutar el script contra archivos de entorno falsos en todos los formatos habituales y pedir al usuario el resultado con sus datos reales | Mi script salía en silencio con `NOMBRE = valor`, el formato de mi archivo | Probar con el formato real de los archivos del usuario y hacer que todo script explique por qué se detiene |
 | Pedir las rutas antes de clasificar | Pedir la lista de rutas de cada alerta de ZAP y comprobar con una petición real la que parece más grave | Evitó aceptar a ciegas la de CSRF y explicó por qué el recuento de ZAP no cambiaba | Clasificar las alertas con sus rutas y evidencias, no solo con su nombre |
 
-## Resumen final para la memoria (se completa al terminar)
+## Resumen final para la memoria
 
-> **BORRADOR redactado por la IA a partir de las entradas anteriores de este registro, para que lo corrija el arquitecto.** Solo recoge lo que ya consta arriba. Las cifras son las del cierre de la Fase 3 (2441 tests unitarios; integración y e2e en verde, ejecutados por el arquitecto). Lo que esté entre corchetes lo tiene que completar o confirmar el autor. No se ha incluido nada de la Fase 4 (despliegue y vídeo) porque aún no consta.
+> Resumen redactado a partir de las entradas de este registro y aprobado por el arquitecto el 2026-11-05. Cifras a esa fecha: 2441 tests unitarios; integración y e2e en verde, ejecutados por el arquitecto; aplicación desplegada en https://akira-astrum.vercel.app/.
 
 - **Qué hizo la IA bien:**
   - Trabajó con un ciclo fijo por sub-bloque: plan, tests en rojo, mínimo en verde y refactor. Cada paso esperó la aprobación del arquitecto, y los commits fueron uno por ciclo.
@@ -601,11 +616,11 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
   - Instaló Docker en su Mac y ejecutó ZAP dos veces, pegando los resultados y las rutas de cada alerta.
   - Detectó fallos que las suites no veían: faltaban los tests de integración en una verificación, el login rechazaba credenciales reales porque el esquema de producción estaba vacío, y la rama ya estaba fusionada.
   - Gestionó las PR y la CI: avisó de los fallos de Dependabot y comprobó que la CI estaba en verde antes de fusionar.
-  - [Pendiente de completar: comprobación manual en móvil real y tras el despliegue.]
+  - Comprobó a mano el despliegue en https://akira-astrum.vercel.app/ (imágenes y CSP, inicio de sesión y cookie, cabeceras, creación y borrado de una entrada de prueba, PWA y registro público desactivado) y confirmó que todo funcionaba.
 
 - **Qué haría diferente la próxima vez:**
   - Probar desde el principio con los datos y el formato reales del usuario, y no con ejemplos inventados.
   - Incluir `next build` y la ejecución de la integración y los e2e en cada cierre de bloque, listando siempre los comandos.
   - Releer los ADR y esta bitácora antes de escribir tests parecidos a otros que ya dieron problemas.
   - Poner la configuración de CI y de Dependabot, y las pruebas de producción simulada, en las primeras fases y no al final.
-  - [Reflexión del autor sobre el reparto de tiempo y el coste de la disciplina TDD: por completar.]
+  - Medir el tiempo desde el principio: las entradas de este registro dicen «no medido», así que la memoria no puede cuantificar el coste de la disciplina TDD ni el reparto del tiempo entre humano e IA.
