@@ -217,6 +217,7 @@ Están declaradas con más detalle en [`docs/owasp-checklist.md`](docs/owasp-che
 | [`docs/threat-model.md`](docs/threat-model.md) | Modelo de amenazas (STRIDE ligero) |
 | [`docs/owasp-checklist.md`](docs/owasp-checklist.md) | Checklist OWASP Top 10:2025 con evidencia |
 | [`docs/ai-log.md`](docs/ai-log.md) | Registro de uso de IA |
+| [`docs/memoria.md`](docs/memoria.md) | Memoria del TFM |
 | [`tests/integration/README.md`](tests/integration/README.md) | Proyecto de test y uso acotado de `service_role` |
 
 ## Autoría
