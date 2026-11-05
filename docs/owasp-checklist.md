@@ -73,7 +73,7 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 
 | Medida | Estado | Evidencia | Qué falta | Cómo verificarlo |
 |---|---|---|---|---|
-| Modelo de amenazas (STRIDE ligero) | ⚠️ Parcial | `docs/threat-model.md` | El documento sigue marcado «BORRADOR para revisión del arquitecto»: falta que se revise y se quite esa marca | Leer `docs/threat-model.md` |
+| Modelo de amenazas (STRIDE ligero) | ✅ Hecho | `docs/threat-model.md` | — | Leer `docs/threat-model.md` (revisado y aprobado por el arquitecto el 2026-11-05) |
 | Decisiones de diseño relevantes registradas como ADR | ✅ Hecho | `docs/adr/README.md`, `docs/ai-log.md` | — | Leer `docs/adr/README.md` |
 | Defensa en profundidad: proxy, capa 2 y RLS | ✅ Hecho | `docs/adr/0010-autorizacion-en-capas-proxy-requireadmin-y-rls.md`, `docs/adr/0003-seguridad-en-profundidad-rls-y-servidor.md` | — | `npm test` |
 | La calculadora no guarda, registra ni envía las fechas | ✅ Hecho | `tests/unit/compatibility/no-persistence.test.ts`, `tests/unit/security/events-calculator.test.ts` | — | `npm test` |
@@ -176,6 +176,5 @@ Todo lo que no está completamente hecho en las tablas de arriba, sin esconder n
 **Parcial**
 - Cross-Origin-Embedder-Policy no activada (aviso bajo de ZAP aceptado)
 - Avisos de desarrollo de `deepmerge` y `minimatch` (vía `shadcn`)
-- Modelo de amenazas (STRIDE ligero)
 - Los límites se comparten entre las instancias del servidor
 - Comprobación manual tras un despliegue de que la caché nueva sustituye a la anterior

@@ -1,6 +1,6 @@
 # Modelo de amenazas (STRIDE ligero)
 
-> **BORRADOR para revisión del arquitecto.** Cumple la fila A06 de `PLAN.md` §5. No repite las medidas del plan: cada amenaza apunta a la sección donde se define y se prueba.
+> **Revisado y aprobado por el arquitecto el 2026-11-05.** Cumple la fila A06 de `PLAN.md` §5. No repite las medidas del plan: cada amenaza apunta a la sección donde se define y se prueba.
 
 ## 1. Activos
 
@@ -49,3 +49,5 @@ Límites: navegador → servidor Next.js → Supabase. Cada salto repite la comp
 ## 5. Revisión
 
 Este documento se revisa al final de cada fase y se contrasta con `docs/owasp-checklist.md` en la Fase 3.
+
+Última revisión: 2026-11-05, al cierre del desarrollo y tras el despliegue, aprobada por el arquitecto.

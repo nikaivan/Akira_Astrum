@@ -477,7 +477,7 @@ Copia este bloque para cada sesión y rellénalo. Borra las líneas que no apliq
 - **Decisión de arquitectura tomada (enlace al ADR si existe):** ninguna nueva.
 - **Dependencias nuevas:** ninguna.
 - **Desviación respecto al plan (si la hay) y motivo:** ninguna respecto a `PLAN.md`; ver "Desviaciones respecto al plan".
-- **Pendiente declarado:** que el despliegue solo salga de `main` con la CI en verde (no consta que esté configurado), la sustitución de la caché del service worker entre versiones, el modelo de amenazas en «BORRADOR», MFA, alertas automáticas y el registro de las acciones del admin.
+- **Pendiente declarado:** que el despliegue solo salga de `main` con la CI en verde (no consta que esté configurado), la sustitución de la caché del service worker entre versiones, MFA, alertas automáticas y el registro de las acciones del admin.
 - **Tiempo aproximado:** no medido.
 
 ## Dependencias añadidas (resumen)
@@ -586,9 +586,9 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
 | Probar con los datos reales del usuario | Ejecutar el script contra archivos de entorno falsos en todos los formatos habituales y pedir al usuario el resultado con sus datos reales | Mi script salía en silencio con `NOMBRE = valor`, el formato de mi archivo | Probar con el formato real de los archivos del usuario y hacer que todo script explique por qué se detiene |
 | Pedir las rutas antes de clasificar | Pedir la lista de rutas de cada alerta de ZAP y comprobar con una petición real la que parece más grave | Evitó aceptar a ciegas la de CSRF y explicó por qué el recuento de ZAP no cambiaba | Clasificar las alertas con sus rutas y evidencias, no solo con su nombre |
 
-## Resumen final para la memoria (se completa al terminar)
+## Resumen final para la memoria
 
-> **BORRADOR redactado por la IA a partir de las entradas anteriores de este registro, para que lo corrija el arquitecto.** Solo recoge lo que ya consta arriba. Las cifras son las del cierre de la Fase 3 (2441 tests unitarios; integración y e2e en verde, ejecutados por el arquitecto). Lo que esté entre corchetes lo tiene que completar o confirmar el autor. No se ha incluido nada de la Fase 4 (despliegue y vídeo) porque aún no consta.
+> Resumen redactado a partir de las entradas de este registro y aprobado por el arquitecto el 2026-11-05. Cifras a esa fecha: 2441 tests unitarios; integración y e2e en verde, ejecutados por el arquitecto; aplicación desplegada en https://akira-astrum.vercel.app/.
 
 - **Qué hizo la IA bien:**
   - Trabajó con un ciclo fijo por sub-bloque: plan, tests en rojo, mínimo en verde y refactor. Cada paso esperó la aprobación del arquitecto, y los commits fueron uno por ciclo.
@@ -616,11 +616,11 @@ Comprobado: nombre correcto con `npm view`, repositorio oficial y licencia. Vers
   - Instaló Docker en su Mac y ejecutó ZAP dos veces, pegando los resultados y las rutas de cada alerta.
   - Detectó fallos que las suites no veían: faltaban los tests de integración en una verificación, el login rechazaba credenciales reales porque el esquema de producción estaba vacío, y la rama ya estaba fusionada.
   - Gestionó las PR y la CI: avisó de los fallos de Dependabot y comprobó que la CI estaba en verde antes de fusionar.
-  - [Pendiente de completar: comprobación manual en móvil real y tras el despliegue.]
+  - Comprobó a mano el despliegue en https://akira-astrum.vercel.app/ (imágenes y CSP, inicio de sesión y cookie, cabeceras, creación y borrado de una entrada de prueba, PWA y registro público desactivado) y confirmó que todo funcionaba.
 
 - **Qué haría diferente la próxima vez:**
   - Probar desde el principio con los datos y el formato reales del usuario, y no con ejemplos inventados.
   - Incluir `next build` y la ejecución de la integración y los e2e en cada cierre de bloque, listando siempre los comandos.
   - Releer los ADR y esta bitácora antes de escribir tests parecidos a otros que ya dieron problemas.
   - Poner la configuración de CI y de Dependabot, y las pruebas de producción simulada, en las primeras fases y no al final.
-  - [Reflexión del autor sobre el reparto de tiempo y el coste de la disciplina TDD: por completar.]
+  - Medir el tiempo desde el principio: las entradas de este registro dicen «no medido», así que la memoria no puede cuantificar el coste de la disciplina TDD ni el reparto del tiempo entre humano e IA.

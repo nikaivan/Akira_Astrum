@@ -201,7 +201,6 @@ Están declaradas con más detalle en [`docs/owasp-checklist.md`](docs/owasp-che
 - **Acciones de GitHub** fijadas por versión mayor, no por hash de commit.
 - **Dos avisos de dependencias de solo desarrollo** (`deepmerge` y `minimatch`, vía `shadcn`); no llegan a producción.
 - **COEP no activada:** aviso bajo de ZAP aceptado a propósito.
-- **Modelo de amenazas** (`docs/threat-model.md`) pendiente de revisión final.
 - **Listados limitados a 50 entradas**, sin paginación.
 - **Despliegue:** la sustitución de la caché del service worker entre versiones no se ha comprobado por separado, y no consta que el despliegue en Vercel esté condicionado a que la CI esté en verde.
 - **ZAP** no recorre la intranet (el escaneo es sin sesión) y solo se ha ejecutado contra una build local.
