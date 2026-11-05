@@ -4,6 +4,7 @@ Blog de astrología con una **intranet de administración** y una **calculadora 
 
 - **Repositorio:** https://github.com/nikaivan/Akira_Astrum
 - **Aplicación desplegada:** https://akira-astrum.vercel.app/
+- **Diapositivas de la defensa:** https://nikaivan.github.io/Akira_Astrum/
 - **Credenciales de prueba:** no se publican aquí. Se facilitan en el formulario de entrega.
 
 ## Índice
