@@ -3,7 +3,7 @@
 Blog de astrología con una **intranet de administración** y una **calculadora pública de compatibilidad entre signos solares**, instalable como aplicación web (PWA). Proyecto del Trabajo Final de Máster, desarrollado con TDD estricto, con una IA como implementadora y una persona como arquitecta y tester.
 
 - **Repositorio:** https://github.com/nikaivan/Akira_Astrum
-- **Aplicación desplegada:** `[URL por completar]`
+- **Aplicación desplegada:** https://akira-astrum.vercel.app/
 - **Credenciales de prueba:** no se publican aquí. Se facilitan en el formulario de entrega.
 
 ## Índice
@@ -182,7 +182,7 @@ Abre la aplicación desplegada en el navegador y sigue los pasos de tu plataform
 | **iPhone y iPad (Safari)** | Botón **Compartir** → **Añadir a pantalla de inicio**. |
 | **Escritorio (Chrome o Edge)** | Icono de instalar en la barra de direcciones, o menú → **Instalar Akira Astrum**. |
 
-> **Estado de la comprobación:** la instalación, el manifiesto y la página sin conexión se han verificado en Chromium de escritorio (y con emulación móvil en los e2e). Los pasos de Android e iOS **aún no se han comprobado en un dispositivo real**. `[Comprobar en un móvil y actualizar esta nota]`
+> **Estado de la comprobación:** la instalación, el manifiesto y la página sin conexión se han verificado en Chromium de escritorio, con emulación móvil en los e2e y, por el autor, en la aplicación desplegada (2026-11-05).
 
 Sin conexión, la aplicación solo muestra una página propia que avisa de que no hay red. Nunca guarda contenido del blog ni de la intranet ([ADR 0022](docs/adr/0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md)).
 
@@ -203,7 +203,7 @@ Están declaradas con más detalle en [`docs/owasp-checklist.md`](docs/owasp-che
 - **COEP no activada:** aviso bajo de ZAP aceptado a propósito.
 - **Modelo de amenazas** (`docs/threat-model.md`) pendiente de revisión final.
 - **Listados limitados a 50 entradas**, sin paginación.
-- **Comprobaciones pendientes en el despliegue:** HTTPS y HSTS, registro público desactivado en producción y sustitución de la caché del service worker tras desplegar.
+- **Despliegue:** la sustitución de la caché del service worker entre versiones no se ha comprobado por separado, y no consta que el despliegue en Vercel esté condicionado a que la CI esté en verde.
 - **ZAP** no recorre la intranet (el escaneo es sin sesión) y solo se ha ejecutado contra una build local.
 - **Calculadora:** solo signos solares, sin carta natal ni zona horaria; son convenciones de la tradición astrológica, sin base científica.
 
@@ -221,4 +221,4 @@ Están declaradas con más detalle en [`docs/owasp-checklist.md`](docs/owasp-che
 
 ## Autoría
 
-Trabajo Final de Máster de `[nombre por completar]`. El repositorio no incluye un archivo `LICENSE`.
+Trabajo Final de Máster de Ivan Maldonado. El repositorio no incluye un archivo `LICENSE`.

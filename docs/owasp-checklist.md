@@ -31,9 +31,9 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 | Cross-Origin-Resource-Policy: same-origin en todas las respuestas (alerta baja del primer escaneo de ZAP) | ✅ Hecho | `lib/security/headers.ts`, `tests/unit/security/cross-origin-policy.test.ts`, `tests/e2e/cross-origin.spec.ts` | — | `npm test` |
 | Cross-Origin-Embedder-Policy no activada (aviso bajo de ZAP aceptado) | ⚠️ Parcial | `tests/unit/security/cross-origin-policy.test.ts` | Se acepta a propósito: solo sirve para aislar el origen (SharedArrayBuffer), que no se usa, y exigiría que todo recurso de terceros declarase su política. Sigue como alerta baja en ZAP | `npm test` |
 | Registro público desactivado en el proyecto de test | ✅ Hecho | `tests/integration/auth-api.test.ts`, `tests/e2e/auth.spec.ts` | — | `npm run test:integration` |
-| Registro público desactivado en producción | ⚠️ Parcial | `docs/ai-log.md` | Se desactivó y se comprobó a mano en el panel de Supabase el 2026-11-03; no hay un test que lo confirme en producción. Repetir la comprobación tras el despliegue final | Panel de Supabase de producción: Authentication, Sign In / Providers |
+| Registro público desactivado en producción | ✅ Hecho | `docs/ai-log.md` | — | Comprobado a mano en el panel de Supabase de producción (Authentication, Sign In / Providers) el 2026-11-03 y de nuevo tras el despliegue (2026-11-05); no hay un test que lo confirme en producción |
 | Bucket de imágenes con tipos y tamaño limitados | ✅ Hecho | `supabase/migrations/20261102230200_storage.sql`, `tests/integration/storage.test.ts`, `tests/unit/storage/image-validation.test.ts` | — | `npm run test:integration` |
-| HSTS en producción | ⚠️ Parcial | `lib/security/headers.ts`, `tests/unit/security/headers.test.ts` | El test comprueba la cabecera solo en la configuración de producción; falta comprobarla en la URL desplegada (Fase 4) | `npm test` |
+| HSTS en producción | ✅ Hecho | `lib/security/headers.ts`, `tests/unit/security/headers.test.ts`, `docs/ai-log.md` | — | `npm test`; cabecera `Strict-Transport-Security` comprobada a mano en https://akira-astrum.vercel.app/ el 2026-11-05 |
 | Escaneo ZAP baseline | ✅ Hecho | `scripts/zap-baseline.sh`, `tests/unit/security/zap-script.test.ts`, `tests/unit/security/zap-script-env.test.ts` | — | `npm run zap` (resultados en la sección «Escaneo ZAP baseline») |
 
 ## A03 Software Supply Chain Failures
@@ -55,7 +55,7 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 | La clave de rol de servicio no aparece en `app/`, `lib/` ni `proxy.ts`, ni llega al cliente | ✅ Hecho | `tests/unit/auth/architecture.test.ts`, `tests/integration/support/environment.ts` | — | `npm test` |
 | Cookies de sesión `httpOnly`, `sameSite: lax`, de 8 horas y `secure` en producción | ✅ Hecho | `lib/supabase/cookie-options.ts`, `tests/unit/auth/cookie-options.test.ts`, `tests/unit/auth/cookie-enforcement.test.ts`, `tests/e2e/auth.spec.ts` | — | `npm test` |
 | Contraseñas y sesiones gestionadas por Supabase Auth, sin código propio de cifrado | ✅ Hecho | `lib/auth/login.ts`, `tests/integration/login-real.test.ts` | — | `npm run test:integration` |
-| Solo HTTPS en producción (HSTS y `upgrade-insecure-requests`) | ⚠️ Parcial | `tests/unit/security/headers.test.ts`, `tests/unit/security/csp.test.ts` | Las cabeceras están probadas por test; falta comprobar que el despliegue real sirve solo por HTTPS (Fase 4) | `npm test` |
+| Solo HTTPS en producción (HSTS y `upgrade-insecure-requests`) | ✅ Hecho | `tests/unit/security/headers.test.ts`, `tests/unit/security/csp.test.ts`, `docs/ai-log.md` | — | `npm test`; comprobado a mano en el despliegue el 2026-11-05 |
 
 ## A05 Injection
 
@@ -98,8 +98,8 @@ Comandos de verificación habituales: `npm test` (unitarios), `npm run test:inte
 | Instalación con `npm ci` y lockfile exacto | ✅ Hecho | `tests/unit/supply-chain/dependencies.test.ts`, `.github/workflows/ci.yml` | — | `npm test` |
 | Sin scripts externos: la CSP solo admite el propio origen y el nonce de cada petición | ✅ Hecho | `lib/security/csp.ts`, `tests/unit/security/csp.test.ts` | — | `npm test` |
 | Una versión nueva de la caché del service worker sustituye a la anterior | ✅ Hecho | `public/sw.js`, `tests/unit/pwa/service-worker.test.ts` | — | `npm test` |
-| Comprobación manual tras un despliegue de que la caché nueva sustituye a la anterior | ⚠️ Parcial | `docs/adr/0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md` | Los pasos están escritos en el ADR; se harán tras el despliegue (Fase 4) | Seguir el ADR |
-| Despliegue solo desde `main` con los tests en verde | ❌ No hecho | — | Aún no hay despliegue (Fase 4, Vercel) | — |
+| Comprobación manual tras un despliegue de que la caché nueva sustituye a la anterior | ⚠️ Parcial | `docs/adr/0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md` | Instalación y modo sin conexión comprobados en el despliegue (2026-11-05); la sustitución de la caché entre dos versiones no se ha comprobado por separado | Seguir el ADR |
+| Despliegue solo desde `main` con los tests en verde | ❌ No hecho | — | La aplicación está desplegada en Vercel (2026-11-05), pero no consta que el despliegue esté condicionado a `main` con la CI en verde | — |
 
 ## A09 Security Logging and Alerting Failures
 
@@ -175,10 +175,7 @@ Todo lo que no está completamente hecho en las tablas de arriba, sin esconder n
 
 **Parcial**
 - Cross-Origin-Embedder-Policy no activada (aviso bajo de ZAP aceptado)
-- Registro público desactivado en producción
-- HSTS en producción
 - Avisos de desarrollo de `deepmerge` y `minimatch` (vía `shadcn`)
-- Solo HTTPS en producción (HSTS y `upgrade-insecure-requests`)
 - Modelo de amenazas (STRIDE ligero)
 - Los límites se comparten entre las instancias del servidor
 - Comprobación manual tras un despliegue de que la caché nueva sustituye a la anterior
