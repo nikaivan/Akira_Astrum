@@ -6,6 +6,7 @@
 - **Máster, universidad y tutor:** `[por completar]`
 - **Fecha de entrega:** viernes 6 de noviembre de 2026
 - **Aplicación desplegada:** https://akira-astrum.vercel.app/
+- **Diapositivas de la defensa:** https://nikaivan.github.io/Akira_Astrum/
 - **Repositorio:** https://github.com/nikaivan/Akira_Astrum
 
 > Esta memoria se redacta a partir de los documentos del repositorio (`PLAN.md`, `docs/`, el código y sus tests). Cada cifra procede de una ejecución o de un archivo del proyecto. Lo que solo puede aportar el autor figura entre corchetes.
@@ -404,4 +405,4 @@ Versiones exactas, según `package.json`. Cada una se comprobó (nombre correcto
 | [`docs/threat-model.md`](threat-model.md) | Modelo de amenazas |
 | [`docs/owasp-checklist.md`](owasp-checklist.md) | Checklist OWASP con evidencias y resultado de ZAP |
 | [`docs/ai-log.md`](ai-log.md) | Registro de uso de IA, desviaciones y resumen final |
-| [`slides/`](../slides/akira-astrum-tfm.pdf) | Diapositivas de la defensa (HTML y PDF) |
+| [`slides/`](../slides/akira-astrum-tfm.pdf) | Diapositivas de la defensa (HTML y PDF); versión web en https://nikaivan.github.io/Akira_Astrum/ |
