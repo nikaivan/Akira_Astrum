@@ -8,6 +8,7 @@
 - **Fecha de entrega:** viernes 6 de noviembre de 2026
 - **Aplicación desplegada:** https://akira-astrum.vercel.app/
 - **Diapositivas de la defensa:** https://nikaivan.github.io/Akira_Astrum/
+- **Vídeo de demostración:** https://drive.google.com/drive/folders/1WlQacdc7Ob_-NUm5bvnHCbCRYktqayPr?usp=sharing
 - **Repositorio:** https://github.com/nikaivan/Akira_Astrum
 
 > Esta memoria se redacta a partir de los documentos del repositorio (`PLAN.md`, `docs/`, el código y sus tests). Cada cifra procede de una ejecución o de un archivo del proyecto. Lo que solo puede aportar el autor figura entre corchetes.
@@ -257,7 +258,7 @@ La aplicación está desplegada en Vercel, con Supabase como base de datos, aute
 - **Antes de desplegar:** aplicar las cuatro migraciones en la base de datos de producción (sin la utilidad SQL exclusiva de test), desactivar el registro público y crear el perfil del administrador. El README documenta el procedimiento.
 - **Comprobaciones previas:** `npm ci`, lint, tests y `next build` correctos; el historial de Git solo contiene `.env.example` (sin valores) y ninguna clave real.
 - **Comprobaciones en producción**, hechas a mano por el autor: imágenes y CSP sin errores, inicio de sesión y cookie, cabeceras, creación y borrado de una entrada de prueba, PWA y registro público desactivado.
-- **Plan B por la pausa de Supabase:** el plan gratuito pausa un proyecto tras un periodo de inactividad. El README avisa de que, si la web da error, el proyecto puede estar pausado, y el autor lo reactiva. Como respaldo, se añade un vídeo de demostración alojado en Drive: `[enlace al vídeo: por completar]`.
+- **Plan B por la pausa de Supabase:** el plan gratuito pausa un proyecto tras un periodo de inactividad. El README avisa de que, si la web da error, el proyecto puede estar pausado, y el autor lo reactiva. Como respaldo, se añade un vídeo de demostración alojado en Drive: https://drive.google.com/drive/folders/1WlQacdc7Ob_-NUm5bvnHCbCRYktqayPr?usp=sharing.
 
 ---
 
