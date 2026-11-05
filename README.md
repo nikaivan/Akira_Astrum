@@ -202,6 +202,7 @@ Están declaradas con más detalle en [`docs/owasp-checklist.md`](docs/owasp-che
 - **Dos avisos de dependencias de solo desarrollo** (`deepmerge` y `minimatch`, vía `shadcn`); no llegan a producción.
 - **COEP no activada:** aviso bajo de ZAP aceptado a propósito.
 - **Listados limitados a 50 entradas**, sin paginación.
+- **Si la web da error:** el proyecto gratuito de Supabase puede estar pausado. Contactad conmigo y lo reactivo.
 - **Despliegue:** la sustitución de la caché del service worker entre versiones no se ha comprobado por separado, y no consta que el despliegue en Vercel esté condicionado a que la CI esté en verde.
 - **ZAP** no recorre la intranet (el escaneo es sin sesión) y solo se ha ejecutado contra una build local.
 - **Calculadora:** solo signos solares, sin carta natal ni zona horaria; son convenciones de la tradición astrológica, sin base científica.
