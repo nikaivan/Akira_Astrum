@@ -3,7 +3,8 @@
 **Memoria del Trabajo Final de Máster**
 
 - **Autor:** Ivan Maldonado
-- **Máster, universidad y tutor:** `[por completar]`
+- **Máster:** Máster en Desarrollo con IA
+- **Tutor:** Brais Moure
 - **Fecha de entrega:** viernes 6 de noviembre de 2026
 - **Aplicación desplegada:** https://akira-astrum.vercel.app/
 - **Diapositivas de la defensa:** https://nikaivan.github.io/Akira_Astrum/
@@ -173,8 +174,6 @@ La página `/compatibilidad` envía las fechas por POST a una Server Action, que
 
 Manifiesto con iconos (uno enmascarable), `display: standalone` y color de tema noche. El service worker es mínimo ([ADR 0022](adr/0022-pwa-minima-manifiesto-service-worker-que-solo-sirve-la-pagina-sin-conexion-y-nunca-guarda-contenido.md)): solo sirve una página `/offline` autocontenida cuando no hay red y **nunca guarda contenido**; no intercepta `/admin`, `/login`, las Server Actions ni las peticiones autenticadas. Instalación: en Android, con Chrome, menú → «Instalar aplicación»; en iOS, con Safari, Compartir → «Añadir a pantalla de inicio»; en escritorio, con Chrome o Edge, el icono de la barra de direcciones.
 
-`[Capturas del panel de administración: por completar por el autor]`
-
 ### 4.6 Desviaciones respecto al plan
 
 Se registran en `docs/ai-log.md` y en los ADR, sin reescribir `PLAN.md`. Las principales:
@@ -258,7 +257,7 @@ La aplicación está desplegada en Vercel, con Supabase como base de datos, aute
 - **Antes de desplegar:** aplicar las cuatro migraciones en la base de datos de producción (sin la utilidad SQL exclusiva de test), desactivar el registro público y crear el perfil del administrador. El README documenta el procedimiento.
 - **Comprobaciones previas:** `npm ci`, lint, tests y `next build` correctos; el historial de Git solo contiene `.env.example` (sin valores) y ninguna clave real.
 - **Comprobaciones en producción**, hechas a mano por el autor: imágenes y CSP sin errores, inicio de sesión y cookie, cabeceras, creación y borrado de una entrada de prueba, PWA y registro público desactivado.
-- **Plan B por la pausa de Supabase:** el plan gratuito pausa un proyecto tras un periodo de inactividad. El README avisa de que, si la web da error, el proyecto puede estar pausado, y el autor lo reactiva. Se añade un vídeo de demostración de respaldo `[por completar]`.
+- **Plan B por la pausa de Supabase:** el plan gratuito pausa un proyecto tras un periodo de inactividad. El README avisa de que, si la web da error, el proyecto puede estar pausado, y el autor lo reactiva. Como respaldo, se añade un vídeo de demostración alojado en Drive: `[enlace al vídeo: por completar]`.
 
 ---
 
@@ -291,7 +290,15 @@ El registro completo es [`docs/ai-log.md`](ai-log.md): una entrada por sesión, 
 
 Probar desde el principio con los datos y el formato reales del usuario; incluir `next build`, la integración y los e2e en cada cierre de bloque; releer los ADR y el registro antes de escribir tests parecidos; poner la CI y Dependabot en las primeras fases; y medir el tiempo desde el principio (las entradas dicen «no medido», por lo que esta memoria no puede cuantificar el coste de la disciplina TDD).
 
-`[Reflexión personal del autor sobre el trabajo con la IA y el tiempo dedicado: por completar]`
+### 8.5 Reflexión personal
+
+Lo que más me ha enseñado este trabajo es que delegar la implementación en una IA no reduce la responsabilidad del humano: la desplaza. Escribir menos código obliga a pensar más en lo que se pide, porque la IA hace con exactitud lo que se le dice, y los errores aparecen cuando la petición, el entorno o los datos reales no coinciden con lo que ella supone.
+
+Aprendí también que el TDD es lo que hace viable ese reparto. Aprobar cada test antes de que exista el código me dio un criterio objetivo para aceptar o rechazar lo que la IA proponía, y los commits pequeños, aprobados uno a uno, me permitieron mantener el control. Ejecutar yo mismo la integración, los e2e y el escaneo ZAP me hizo ver fallos que ninguna prueba de la IA habría detectado, como un script que fallaba en silencio con el formato real de mi archivo de entorno.
+
+En seguridad, comprobé que tratarla como requisito desde el diseño cuesta menos que añadirla al final, y que documentar con honestidad lo que no está hecho (autenticación multifactor, alertas automáticas, límites compartidos entre instancias) da más confianza que ocultarlo. Mantener el registro de uso de IA, con sus errores, me obligó a revisar mis propias decisiones.
+
+Como aprendizaje práctico, no medí el tiempo dedicado, así que no puedo cuantificarlo, y la próxima vez lo haría desde el primer día.
 
 ---
 
